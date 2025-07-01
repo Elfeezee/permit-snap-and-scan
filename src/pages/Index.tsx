@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Barcode, Download, CheckCircle, Clock, AlertCircle, Link, Printer } from 'lucide-react';
+import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ProcessedDocument, 
   generateUniqueId, 
-  generateBarcode, 
   generateQRCode, 
-  embedBarcodeInPDF, 
+  embedQRCodeInPDF, 
   createShareableUrl 
 } from '@/utils/pdfProcessor';
 import { documentStore } from '@/utils/documentStore';
@@ -81,24 +80,16 @@ const Index = () => {
       updateDocumentStatus(doc.id, 'processing');
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 0 }));
 
-      // Generate simple barcode value (8-digit timestamp)
-      const barcodeValue = Date.now().toString().slice(-8);
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 20 }));
-
       // Create shareable URL
       const shareableUrl = createShareableUrl(doc.id);
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 40 }));
-
-      // Generate barcode image
-      const barcodeDataUrl = await generateBarcode(barcodeValue);
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 60 }));
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 50 }));
 
       // Generate QR code for shareable link
       const qrCodeDataUrl = await generateQRCode(shareableUrl);
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 80 }));
 
-      // Embed barcode and QR code in PDF
-      const processedBlob = await embedBarcodeInPDF(file, barcodeDataUrl, qrCodeDataUrl);
+      // Embed QR code in PDF
+      const processedBlob = await embedQRCodeInPDF(file, qrCodeDataUrl);
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 100 }));
 
       // Store blob URLs
@@ -109,7 +100,6 @@ const Index = () => {
       const updatedDoc: ProcessedDocument = {
         ...doc,
         status: 'processed',
-        barcodeValue,
         shareableUrl,
         processedBlob
       };
@@ -128,7 +118,7 @@ const Index = () => {
 
       toast({
         title: "Processing Complete",
-        description: `Barcode embedded in ${doc.name}. Document ready for printing and sharing.`,
+        description: `QR code embedded in ${doc.name}. Document ready for printing and sharing.`,
       });
 
     } catch (error) {
@@ -357,15 +347,6 @@ const Index = () => {
                                 <span>{doc.size}</span>
                                 <span>•</span>
                                 <span>{doc.uploadDate}</span>
-                                {doc.barcodeValue && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="flex items-center space-x-1">
-                                      <Barcode className="h-3 w-3" />
-                                      <span>{doc.barcodeValue}</span>
-                                    </span>
-                                  </>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -419,11 +400,11 @@ const Index = () => {
             <Card className="text-center">
               <CardContent className="p-6">
                 <div className="bg-green-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Barcode className="h-6 w-6 text-green-600" />
+                  <FileText className="h-6 w-6 text-green-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Auto Barcode</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">QR Code Integration</h3>
                 <p className="text-sm text-gray-600">
-                  Automatically generate and embed unique barcodes on documents
+                  Automatically generate and embed QR codes for document sharing
                 </p>
               </CardContent>
             </Card>

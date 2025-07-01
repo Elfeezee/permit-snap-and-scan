@@ -91,10 +91,6 @@ const DocumentViewer = () => {
                 <span className="ml-2 text-gray-600">{doc.size}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Barcode:</span>
-                <span className="ml-2 text-gray-600 font-mono">{doc.barcodeValue}</span>
-              </div>
-              <div>
                 <span className="font-medium text-gray-700">Status:</span>
                 <span className="ml-2 text-green-600 font-medium">Processed</span>
               </div>
@@ -114,9 +110,8 @@ const DocumentViewer = () => {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="font-medium text-blue-900 mb-2">About This Document</h3>
               <p className="text-sm text-blue-800">
-                This PDF has been processed with an embedded barcode at the bottom center 
-                and a QR code (which links to this page) at the bottom-right corner. 
-                The barcode is now positioned within the document content area for better integration.
+                This PDF has been processed with a QR code embedded at the top-right corner 
+                which links to this page for easy sharing and access.
               </p>
             </div>
           </CardContent>

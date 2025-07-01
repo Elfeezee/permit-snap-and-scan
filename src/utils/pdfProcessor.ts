@@ -1,6 +1,5 @@
 
 import { PDFDocument, rgb } from 'pdf-lib';
-import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 
 export interface ProcessedDocument {
@@ -9,7 +8,6 @@ export interface ProcessedDocument {
   size: string;
   uploadDate: string;
   status: 'uploaded' | 'processing' | 'processed';
-  barcodeValue?: string;
   originalBlob?: Blob;
   processedBlob?: Blob;
   shareableUrl?: string;
@@ -17,23 +15,6 @@ export interface ProcessedDocument {
 
 export const generateUniqueId = (): string => {
   return `DOC-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-};
-
-export const generateBarcode = (value: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
-    // Generate a simple numeric barcode
-    const simpleValue = Date.now().toString().slice(-8); // Last 8 digits of timestamp
-    JsBarcode(canvas, simpleValue, {
-      format: "CODE128",
-      width: 2,
-      height: 40,
-      displayValue: true,
-      fontSize: 10,
-      margin: 5
-    });
-    resolve(canvas.toDataURL());
-  });
 };
 
 export const generateQRCode = async (url: string): Promise<string> => {
@@ -53,9 +34,8 @@ export const generateQRCode = async (url: string): Promise<string> => {
   }
 };
 
-export const embedBarcodeInPDF = async (
+export const embedQRCodeInPDF = async (
   pdfFile: File, 
-  barcodeDataUrl: string, 
   qrCodeDataUrl: string
 ): Promise<Blob> => {
   try {
@@ -66,20 +46,6 @@ export const embedBarcodeInPDF = async (
     const pages = pdfDoc.getPages();
     const firstPage = pages[0];
     const { width, height } = firstPage.getSize();
-    
-    // Embed the barcode image - place it at the bottom center of the document
-    const barcodeImage = await pdfDoc.embedPng(barcodeDataUrl);
-    const barcodeScale = 0.7;
-    const barcodeWidth = barcodeImage.width * barcodeScale;
-    const barcodeHeight = barcodeImage.height * barcodeScale;
-    
-    // Position barcode at bottom center
-    firstPage.drawImage(barcodeImage, {
-      x: (width - barcodeWidth) / 2,
-      y: 30,
-      width: barcodeWidth,
-      height: barcodeHeight,
-    });
     
     // Embed the QR code image at the top-right corner
     const qrImage = await pdfDoc.embedPng(qrCodeDataUrl);
@@ -104,7 +70,7 @@ export const embedBarcodeInPDF = async (
     const pdfBytes = await pdfDoc.save();
     return new Blob([pdfBytes], { type: 'application/pdf' });
   } catch (error) {
-    console.error('Error embedding barcode in PDF:', error);
+    console.error('Error embedding QR code in PDF:', error);
     throw error;
   }
 };
