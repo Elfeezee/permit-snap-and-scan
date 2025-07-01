@@ -1,27 +1,24 @@
-
 import React, { useState } from 'react';
-import { Upload, FileText, Barcode, Download, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Barcode, Download, CheckCircle, Clock, AlertCircle, Link, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-
-interface Document {
-  id: string;
-  name: string;
-  size: string;
-  uploadDate: string;
-  status: 'uploaded' | 'processing' | 'processed';
-  barcodeValue?: string;
-  originalUrl?: string;
-  processedUrl?: string;
-}
+import { 
+  ProcessedDocument, 
+  generateUniqueId, 
+  generateBarcode, 
+  generateQRCode, 
+  embedBarcodeInPDF, 
+  createShareableUrl 
+} from '@/utils/pdfProcessor';
+import { documentStore } from '@/utils/documentStore';
 
 const Index = () => {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<ProcessedDocument[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingProgress, setProcessingProgress] = useState<{ [key: string]: number }>({});
   const { toast } = useToast();
 
   const handleDrag = (e: React.DragEvent) => {
@@ -43,7 +40,7 @@ const Index = () => {
     handleFiles(files);
   };
 
-  const handleFiles = (files: File[]) => {
+  const handleFiles = async (files: File[]) => {
     const pdfFiles = files.filter(file => file.type === 'application/pdf');
     
     if (pdfFiles.length === 0) {
@@ -55,68 +52,147 @@ const Index = () => {
       return;
     }
 
-    pdfFiles.forEach(file => {
-      const newDoc: Document = {
-        id: Math.random().toString(36).substr(2, 9),
+    for (const file of pdfFiles) {
+      const newDoc: ProcessedDocument = {
+        id: generateUniqueId(),
         name: file.name,
         size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
         uploadDate: new Date().toLocaleDateString(),
         status: 'uploaded',
+        originalBlob: file,
       };
 
       setDocuments(prev => [...prev, newDoc]);
+      documentStore.storeDocument(newDoc);
       
-      // Simulate processing
-      simulateProcessing(newDoc.id);
-    });
+      // Start processing
+      processDocument(newDoc, file);
+    }
 
     toast({
       title: "Files Uploaded",
-      description: `${pdfFiles.length} PDF file(s) uploaded successfully.`,
+      description: `${pdfFiles.length} PDF file(s) uploaded successfully. Processing started.`,
     });
   };
 
-  const simulateProcessing = (docId: string) => {
-    setProcessingProgress(0);
-    
-    // Update status to processing
-    setDocuments(prev => 
-      prev.map(doc => 
-        doc.id === docId ? { ...doc, status: 'processing' } : doc
-      )
-    );
+  const processDocument = async (doc: ProcessedDocument, file: File) => {
+    try {
+      // Update status to processing
+      updateDocumentStatus(doc.id, 'processing');
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 0 }));
 
-    // Simulate progress
-    const interval = setInterval(() => {
-      setProcessingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          
-          // Complete processing
-          setDocuments(prevDocs => 
-            prevDocs.map(doc => 
-              doc.id === docId ? {
-                ...doc,
-                status: 'processed',
-                barcodeValue: `BC-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-                processedUrl: `#processed/${doc.id}`
-              } : doc
-            )
-          );
+      // Generate unique barcode value
+      const barcodeValue = doc.id;
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 20 }));
 
-          toast({
-            title: "Processing Complete",
-            description: "Barcode has been generated and embedded in the document.",
-          });
+      // Create shareable URL
+      const shareableUrl = createShareableUrl(doc.id);
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 40 }));
 
-          return 100;
-        }
-        return prev + 10;
+      // Generate barcode image
+      const barcodeDataUrl = await generateBarcode(barcodeValue);
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 60 }));
+
+      // Generate QR code for shareable link
+      const qrCodeDataUrl = await generateQRCode(shareableUrl);
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 80 }));
+
+      // Embed barcode and QR code in PDF
+      const processedBlob = await embedBarcodeInPDF(file, barcodeDataUrl, qrCodeDataUrl);
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 100 }));
+
+      // Store blob URLs
+      documentStore.storeBlobUrl(doc.id, 'original', file);
+      documentStore.storeBlobUrl(doc.id, 'processed', processedBlob);
+
+      // Update document with processing results
+      const updatedDoc: ProcessedDocument = {
+        ...doc,
+        status: 'processed',
+        barcodeValue,
+        shareableUrl,
+        processedBlob
+      };
+
+      updateDocument(doc.id, updatedDoc);
+      documentStore.updateDocument(doc.id, updatedDoc);
+
+      // Clean up progress tracking
+      setTimeout(() => {
+        setProcessingProgress(prev => {
+          const newState = { ...prev };
+          delete newState[doc.id];
+          return newState;
+        });
+      }, 1000);
+
+      toast({
+        title: "Processing Complete",
+        description: `Barcode embedded in ${doc.name}. Document ready for printing and sharing.`,
       });
-    }, 300);
+
+    } catch (error) {
+      console.error('Error processing document:', error);
+      updateDocumentStatus(doc.id, 'uploaded');
+      toast({
+        title: "Processing Failed",
+        description: "Failed to process the document. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getStatusIcon = (status: Document['status']) => {
+  const updateDocumentStatus = (docId: string, status: ProcessedDocument['status']) => {
+    setDocuments(prev => 
+      prev.map(doc => 
+        doc.id === docId ? { ...doc, status } : doc
+      )
+    );
+  };
+
+  const updateDocument = (docId: string, updatedDoc: ProcessedDocument) => {
+    setDocuments(prev => 
+      prev.map(doc => 
+        doc.id === docId ? updatedDoc : doc
+      )
+    );
+  };
+
+  const handlePrint = (doc: ProcessedDocument) => {
+    const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
+    if (blobUrl) {
+      const printWindow = window.open(blobUrl);
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      }
+    }
+  };
+
+  const handleDownload = (doc: ProcessedDocument) => {
+    const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
+    if (blobUrl) {
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `processed_${doc.name}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const copyShareableLink = (doc: ProcessedDocument) => {
+    if (doc.shareableUrl) {
+      navigator.clipboard.writeText(doc.shareableUrl);
+      toast({
+        title: "Link Copied",
+        description: "Shareable link copied to clipboard.",
+      });
+    }
+  };
+
+  const getStatusIcon = (status: ProcessedDocument['status']) => {
     switch (status) {
       case 'uploaded':
         return <Clock className="h-4 w-4 text-yellow-500" />;
@@ -127,7 +203,7 @@ const Index = () => {
     }
   };
 
-  const getStatusColor = (status: Document['status']) => {
+  const getStatusColor = (status: ProcessedDocument['status']) => {
     switch (status) {
       case 'uploaded':
         return 'bg-yellow-100 text-yellow-800';
@@ -211,15 +287,18 @@ const Index = () => {
                 </div>
 
                 {/* Processing Progress */}
-                {processingProgress > 0 && processingProgress < 100 && (
-                  <div className="mt-6">
-                    <div className="flex justify-between text-sm text-gray-600 mb-2">
-                      <span>Processing document...</span>
-                      <span>{processingProgress}%</span>
+                {Object.entries(processingProgress).map(([docId, progress]) => {
+                  const doc = documents.find(d => d.id === docId);
+                  return doc ? (
+                    <div key={docId} className="mt-6">
+                      <div className="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>Processing {doc.name}...</span>
+                        <span>{progress}%</span>
+                      </div>
+                      <Progress value={progress} className="w-full" />
                     </div>
-                    <Progress value={processingProgress} className="w-full" />
-                  </div>
-                )}
+                  ) : null;
+                })}
               </CardContent>
             </Card>
 
@@ -298,10 +377,17 @@ const Index = () => {
                               </div>
                             </Badge>
                             {doc.status === 'processed' && (
-                              <Button size="sm" variant="outline">
-                                <Download className="h-4 w-4 mr-1" />
-                                Download
-                              </Button>
+                              <div className="flex space-x-2">
+                                <Button size="sm" variant="outline" onClick={() => handlePrint(doc)} title="Print PDF">
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => handleDownload(doc)} title="Download PDF">
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => copyShareableLink(doc)} title="Copy shareable link">
+                                  <Link className="h-4 w-4" />
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>
