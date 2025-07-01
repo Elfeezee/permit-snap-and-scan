@@ -4,6 +4,28 @@ import { ProcessedDocument } from './pdfProcessor';
 class DocumentStore {
   private documents: Map<string, ProcessedDocument> = new Map();
 
+  constructor() {
+    // Load documents from localStorage on initialization
+    this.loadFromStorage();
+  }
+
+  private loadFromStorage(): void {
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('doc_')) {
+          const docData = localStorage.getItem(key);
+          if (docData) {
+            const doc = JSON.parse(docData);
+            this.documents.set(doc.id, doc);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error loading documents from storage:', error);
+    }
+  }
+
   storeDocument(document: ProcessedDocument): void {
     this.documents.set(document.id, document);
     // Store in localStorage for persistence

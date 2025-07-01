@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, AlertCircle } from 'lucide-react';
+import { Download, FileText, AlertCircle, ExternalLink } from 'lucide-react';
 import { documentStore } from '@/utils/documentStore';
 import { ProcessedDocument } from '@/utils/pdfProcessor';
 
@@ -31,7 +31,14 @@ const DocumentViewer = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    } else {
+      // If blob URL is not available, show a message
+      alert('The processed PDF is not available for download. Please return to the main page and process the document again.');
     }
+  };
+
+  const goToMainPage = () => {
+    window.location.href = '/';
   };
 
   if (loading) {
@@ -52,7 +59,11 @@ const DocumentViewer = () => {
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Document Not Found</h2>
-            <p className="text-gray-600">The requested document could not be found.</p>
+            <p className="text-gray-600 mb-4">The requested document could not be found. It may have been processed in a different session.</p>
+            <Button onClick={goToMainPage} className="w-full">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Go to Main Page
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -89,19 +100,23 @@ const DocumentViewer = () => {
               </div>
             </div>
             
-            <div className="flex justify-center">
+            <div className="flex justify-center space-x-4">
               <Button onClick={handleDownload} size="lg">
                 <Download className="h-5 w-5 mr-2" />
                 Download Processed PDF
+              </Button>
+              <Button onClick={goToMainPage} variant="outline" size="lg">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Return to Main Page
               </Button>
             </div>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="font-medium text-blue-900 mb-2">About This Document</h3>
               <p className="text-sm text-blue-800">
-                This PDF has been processed with an embedded barcode and QR code. 
-                The barcode is located in the top-right corner, and the QR code 
-                (which links to this page) is in the bottom-left corner.
+                This PDF has been processed with an embedded barcode at the bottom center 
+                and a QR code (which links to this page) at the bottom-right corner. 
+                The barcode is now positioned within the document content area for better integration.
               </p>
             </div>
           </CardContent>

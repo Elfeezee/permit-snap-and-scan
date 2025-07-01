@@ -25,10 +25,10 @@ export const generateBarcode = (value: string): Promise<string> => {
     JsBarcode(canvas, value, {
       format: "CODE128",
       width: 2,
-      height: 50,
+      height: 40,
       displayValue: true,
-      fontSize: 12,
-      margin: 10
+      fontSize: 10,
+      margin: 5
     });
     resolve(canvas.toDataURL());
   });
@@ -37,7 +37,7 @@ export const generateBarcode = (value: string): Promise<string> => {
 export const generateQRCode = async (url: string): Promise<string> => {
   try {
     const qrDataUrl = await QRCode.toDataURL(url, {
-      width: 100,
+      width: 80,
       margin: 1,
       color: {
         dark: '#000000',
@@ -65,27 +65,27 @@ export const embedBarcodeInPDF = async (
     const firstPage = pages[0];
     const { width, height } = firstPage.getSize();
     
-    // Embed the barcode image
+    // Embed the barcode image - place it at the bottom center of the document
     const barcodeImage = await pdfDoc.embedPng(barcodeDataUrl);
-    const barcodeScale = 0.8;
+    const barcodeScale = 0.7;
     const barcodeWidth = barcodeImage.width * barcodeScale;
     const barcodeHeight = barcodeImage.height * barcodeScale;
     
-    // Position barcode at top-right corner
+    // Position barcode at bottom center
     firstPage.drawImage(barcodeImage, {
-      x: width - barcodeWidth - 20,
-      y: height - barcodeHeight - 20,
+      x: (width - barcodeWidth) / 2,
+      y: 30,
       width: barcodeWidth,
       height: barcodeHeight,
     });
     
-    // Embed the QR code image
+    // Embed the QR code image at bottom-right corner
     const qrImage = await pdfDoc.embedPng(qrCodeDataUrl);
-    const qrSize = 80;
+    const qrSize = 60;
     
-    // Position QR code at bottom-left corner
+    // Position QR code at bottom-right corner
     firstPage.drawImage(qrImage, {
-      x: 20,
+      x: width - qrSize - 20,
       y: 20,
       width: qrSize,
       height: qrSize,
@@ -93,9 +93,9 @@ export const embedBarcodeInPDF = async (
     
     // Add text label for QR code
     firstPage.drawText('Scan for link', {
-      x: 20,
-      y: 105,
-      size: 8,
+      x: width - qrSize - 20,
+      y: 85,
+      size: 7,
       color: rgb(0, 0, 0),
     });
     
