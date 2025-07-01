@@ -9,25 +9,25 @@ import { ProcessedDocument } from '@/utils/pdfProcessor';
 
 const DocumentViewer = () => {
   const { id } = useParams<{ id: string }>();
-  const [document, setDocument] = useState<ProcessedDocument | null>(null);
+  const [doc, setDoc] = useState<ProcessedDocument | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (id) {
-      const doc = documentStore.getDocument(id);
-      setDocument(doc);
+      const foundDoc = documentStore.getDocument(id);
+      setDoc(foundDoc);
       setLoading(false);
     }
   }, [id]);
 
   const handleDownload = () => {
-    if (!document) return;
+    if (!doc) return;
     
-    const blobUrl = documentStore.getBlobUrl(document.id, 'processed');
+    const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
     if (blobUrl) {
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = `processed_${document.name}`;
+      link.download = `processed_${doc.name}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -45,7 +45,7 @@ const DocumentViewer = () => {
     );
   }
 
-  if (!document) {
+  if (!doc) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <Card className="max-w-md">
@@ -66,22 +66,22 @@ const DocumentViewer = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <FileText className="h-6 w-6 text-blue-600" />
-              <span>Document: {document.name}</span>
+              <span>Document: {doc.name}</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="font-medium text-gray-700">Upload Date:</span>
-                <span className="ml-2 text-gray-600">{document.uploadDate}</span>
+                <span className="ml-2 text-gray-600">{doc.uploadDate}</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">File Size:</span>
-                <span className="ml-2 text-gray-600">{document.size}</span>
+                <span className="ml-2 text-gray-600">{doc.size}</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">Barcode:</span>
-                <span className="ml-2 text-gray-600 font-mono">{document.barcodeValue}</span>
+                <span className="ml-2 text-gray-600 font-mono">{doc.barcodeValue}</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">Status:</span>
