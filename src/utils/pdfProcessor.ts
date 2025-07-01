@@ -22,7 +22,9 @@ export const generateUniqueId = (): string => {
 export const generateBarcode = (value: string): Promise<string> => {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
-    JsBarcode(canvas, value, {
+    // Generate a simple numeric barcode
+    const simpleValue = Date.now().toString().slice(-8); // Last 8 digits of timestamp
+    JsBarcode(canvas, simpleValue, {
       format: "CODE128",
       width: 2,
       height: 40,
@@ -79,22 +81,22 @@ export const embedBarcodeInPDF = async (
       height: barcodeHeight,
     });
     
-    // Embed the QR code image at bottom-right corner
+    // Embed the QR code image at the top-right corner
     const qrImage = await pdfDoc.embedPng(qrCodeDataUrl);
     const qrSize = 60;
     
-    // Position QR code at bottom-right corner
+    // Position QR code at top-right corner
     firstPage.drawImage(qrImage, {
       x: width - qrSize - 20,
-      y: 20,
+      y: height - qrSize - 20,
       width: qrSize,
       height: qrSize,
     });
     
-    // Add text label for QR code
+    // Add text label for QR code at the top
     firstPage.drawText('Scan for link', {
       x: width - qrSize - 20,
-      y: 85,
+      y: height - 15,
       size: 7,
       color: rgb(0, 0, 0),
     });

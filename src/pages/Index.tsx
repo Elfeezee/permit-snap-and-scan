@@ -81,8 +81,8 @@ const Index = () => {
       updateDocumentStatus(doc.id, 'processing');
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 0 }));
 
-      // Generate unique barcode value
-      const barcodeValue = doc.id;
+      // Generate simple barcode value (8-digit timestamp)
+      const barcodeValue = Date.now().toString().slice(-8);
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 20 }));
 
       // Create shareable URL
