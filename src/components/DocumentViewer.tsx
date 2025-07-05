@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, AlertCircle, ExternalLink } from 'lucide-react';
+import { Download, FileText, AlertCircle, ExternalLink, QrCode } from 'lucide-react';
 import { documentStore } from '@/utils/documentStore';
 import { ProcessedDocument } from '@/utils/pdfProcessor';
 
@@ -108,11 +108,22 @@ const DocumentViewer = () => {
             </div>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 mb-2">About This Document</h3>
-              <p className="text-sm text-blue-800">
-                This PDF has been processed with a QR code embedded at the top-right corner 
-                which links to this page for easy sharing and access.
-              </p>
+              <h3 className="font-medium text-blue-900 mb-2 flex items-center">
+                <QrCode className="h-5 w-5 mr-2" />
+                About This Document
+              </h3>
+              <div className="text-sm text-blue-800 space-y-2">
+                <p>
+                  This PDF has been processed with both a QR code and barcode embedded:
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>QR code at the top-right corner for easy sharing</li>
+                  <li>Barcode at the bottom center that links to this page</li>
+                </ul>
+                <p className="mt-2 font-medium">
+                  Scan either code to access this document page instantly!
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

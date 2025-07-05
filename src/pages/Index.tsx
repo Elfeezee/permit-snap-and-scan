@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,8 @@ import {
   ProcessedDocument, 
   generateUniqueId, 
   generateQRCode, 
-  embedQRCodeInPDF, 
+  generateBarcode,
+  embedCodesInPDF, 
   createShareableUrl 
 } from '@/utils/pdfProcessor';
 import { documentStore } from '@/utils/documentStore';
@@ -82,14 +84,18 @@ const Index = () => {
 
       // Create shareable URL
       const shareableUrl = createShareableUrl(doc.id);
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 50 }));
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 25 }));
 
       // Generate QR code for shareable link
       const qrCodeDataUrl = await generateQRCode(shareableUrl);
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 80 }));
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 50 }));
 
-      // Embed QR code in PDF
-      const processedBlob = await embedQRCodeInPDF(file, qrCodeDataUrl);
+      // Generate barcode with the same shareable URL
+      const barcodeDataUrl = await generateBarcode(shareableUrl);
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 75 }));
+
+      // Embed both QR code and barcode in PDF
+      const processedBlob = await embedCodesInPDF(file, qrCodeDataUrl, barcodeDataUrl);
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 100 }));
 
       // Store blob URLs
@@ -101,6 +107,7 @@ const Index = () => {
         ...doc,
         status: 'processed',
         shareableUrl,
+        barcodeData: shareableUrl,
         processedBlob
       };
 
@@ -118,7 +125,7 @@ const Index = () => {
 
       toast({
         title: "Processing Complete",
-        description: `QR code embedded in ${doc.name}. Document ready for printing and sharing.`,
+        description: `QR code and barcode embedded in ${doc.name}. Barcode links to the document page.`,
       });
 
     } catch (error) {
@@ -392,7 +399,7 @@ const Index = () => {
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">Secure Upload</h3>
                 <p className="text-sm text-gray-600">
-                  Safely upload PDF documents with Firebase Storage integration
+                  Safely upload PDF documents with secure processing
                 </p>
               </CardContent>
             </Card>
@@ -402,9 +409,9 @@ const Index = () => {
                 <div className="bg-green-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <FileText className="h-6 w-6 text-green-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">QR Code Integration</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Barcode & QR Integration</h3>
                 <p className="text-sm text-gray-600">
-                  Automatically generate and embed QR codes for document sharing
+                  Automatically generate scannable barcodes and QR codes for document access
                 </p>
               </CardContent>
             </Card>
