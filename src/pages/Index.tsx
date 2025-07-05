@@ -447,28 +447,6 @@ const Index = () => {
       </div>
     </div>
   );
-
-  const getStatusIcon = (status: ProcessedDocument['status']) => {
-    switch (status) {
-      case 'uploaded':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'processing':
-        return <AlertCircle className="h-4 w-4 text-blue-500" />;
-      case 'processed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-    }
-  };
-
-  const getStatusColor = (status: ProcessedDocument['status']) => {
-    switch (status) {
-      case 'uploaded':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800';
-      case 'processed':
-        return 'bg-green-100 text-green-800';
-    }
-  };
 };
 
 export default Index;
