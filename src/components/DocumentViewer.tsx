@@ -17,14 +17,30 @@ const DocumentViewer = () => {
     console.log('DocumentViewer - Looking for document with ID:', id);
     if (id) {
       try {
-        const foundDoc = documentStore.getDocument(id);
+        // First try to get from documentStore
+        let foundDoc = documentStore.getDocument(id);
+        
+        // If not found in memory, try to load from localStorage directly
+        if (!foundDoc) {
+          console.log('DocumentViewer - Document not found in memory, checking localStorage');
+          const docData = localStorage.getItem(`doc_${id}`);
+          if (docData) {
+            try {
+              foundDoc = JSON.parse(docData);
+              console.log('DocumentViewer - Found document in localStorage:', foundDoc);
+            } catch (parseError) {
+              console.error('DocumentViewer - Error parsing document from localStorage:', parseError);
+            }
+          }
+        }
+        
         console.log('DocumentViewer - Found document:', foundDoc);
         
         if (foundDoc) {
           setDoc(foundDoc);
           setError(null);
         } else {
-          console.log('DocumentViewer - Document not found in store');
+          console.log('DocumentViewer - Document not found anywhere');
           setError('Document not found. It may have been processed in a different session.');
         }
       } catch (err) {
@@ -68,9 +84,24 @@ const DocumentViewer = () => {
       setError(null);
       // Trigger a re-fetch
       setTimeout(() => {
-        const foundDoc = documentStore.getDocument(id);
+        // Try documentStore first
+        let foundDoc = documentStore.getDocument(id);
+        
+        // If not found, try localStorage
+        if (!foundDoc) {
+          const docData = localStorage.getItem(`doc_${id}`);
+          if (docData) {
+            try {
+              foundDoc = JSON.parse(docData);
+            } catch (parseError) {
+              console.error('Error parsing document from localStorage:', parseError);
+            }
+          }
+        }
+        
         if (foundDoc) {
           setDoc(foundDoc);
+          setError(null);
         } else {
           setError('Document still not found. Please return to the main page.');
         }

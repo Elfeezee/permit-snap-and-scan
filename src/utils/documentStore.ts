@@ -55,12 +55,33 @@ class DocumentStore {
 
   getDocument(id: string): ProcessedDocument | null {
     console.log('DocumentStore - Getting document:', id);
-    const doc = this.documents.get(id);
+    let doc = this.documents.get(id);
+    
+    // If not found in memory, try to load from localStorage
+    if (!doc) {
+      console.log('DocumentStore - Document not in memory, checking localStorage');
+      try {
+        const docData = localStorage.getItem(`doc_${id}`);
+        if (docData) {
+          doc = JSON.parse(docData);
+          if (doc) {
+            // Add back to memory for future access
+            this.documents.set(id, doc);
+            console.log('DocumentStore - Loaded document from localStorage:', doc.id);
+          }
+        }
+      } catch (error) {
+        console.error('DocumentStore - Error loading document from localStorage:', error);
+      }
+    }
+    
     console.log('DocumentStore - Found document:', doc ? 'Yes' : 'No');
     return doc || null;
   }
 
   getAllDocuments(): ProcessedDocument[] {
+    // Ensure we have all documents from localStorage
+    this.loadFromStorage();
     const docs = Array.from(this.documents.values());
     console.log('DocumentStore - Getting all documents, count:', docs.length);
     return docs;
