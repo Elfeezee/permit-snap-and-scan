@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -114,14 +113,10 @@ const DocumentViewer = () => {
               </h3>
               <div className="text-sm text-blue-800 space-y-2">
                 <p>
-                  This PDF has been processed with both a QR code and barcode embedded:
+                  This PDF has been processed with a QR code embedded at the top-right corner for easy sharing and access.
                 </p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>QR code at the top-right corner for easy sharing</li>
-                  <li>Barcode at the bottom center that links to this page</li>
-                </ul>
                 <p className="mt-2 font-medium">
-                  Scan either code to access this document page instantly!
+                  Scan the QR code to access this document page instantly!
                 </p>
               </div>
             </div>
