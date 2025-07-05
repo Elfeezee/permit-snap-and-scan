@@ -13,41 +13,51 @@ const DocumentViewer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log('DocumentViewer - Looking for document with ID:', id);
-    if (id) {
-      try {
-        // First try to get from documentStore
-        let foundDoc = documentStore.getDocument(id);
-        
-        // If not found in memory, try to load from localStorage directly
-        if (!foundDoc) {
-          console.log('DocumentViewer - Document not found in memory, checking localStorage');
-          const docData = localStorage.getItem(`doc_${id}`);
-          if (docData) {
-            try {
-              foundDoc = JSON.parse(docData);
-              console.log('DocumentViewer - Found document in localStorage:', foundDoc);
-            } catch (parseError) {
-              console.error('DocumentViewer - Error parsing document from localStorage:', parseError);
-            }
+  const loadDocument = async (documentId: string) => {
+    console.log('DocumentViewer - Loading document with ID:', documentId);
+    
+    try {
+      // Try multiple approaches to find the document
+      let foundDoc = documentStore.getDocument(documentId);
+      
+      // If still not found, wait a bit and try again (for async loading)
+      if (!foundDoc) {
+        console.log('DocumentViewer - Document not found, waiting and retrying...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        foundDoc = documentStore.getDocument(documentId);
+      }
+      
+      // Final attempt with direct localStorage access
+      if (!foundDoc) {
+        console.log('DocumentViewer - Final attempt with direct localStorage access');
+        const docData = localStorage.getItem(`doc_${documentId}`);
+        if (docData) {
+          try {
+            foundDoc = JSON.parse(docData);
+            console.log('DocumentViewer - Found document in localStorage:', foundDoc);
+          } catch (parseError) {
+            console.error('DocumentViewer - Error parsing document from localStorage:', parseError);
           }
         }
-        
-        console.log('DocumentViewer - Found document:', foundDoc);
-        
-        if (foundDoc) {
-          setDoc(foundDoc);
-          setError(null);
-        } else {
-          console.log('DocumentViewer - Document not found anywhere');
-          setError('Document not found. It may have been processed in a different session.');
-        }
-      } catch (err) {
-        console.error('DocumentViewer - Error retrieving document:', err);
-        setError('Error retrieving document.');
       }
-      setLoading(false);
+      
+      if (foundDoc) {
+        console.log('DocumentViewer - Successfully loaded document:', foundDoc.name);
+        setDoc(foundDoc);
+        setError(null);
+      } else {
+        console.log('DocumentViewer - Document not found anywhere');
+        setError('Document not found. It may have been processed in a different session.');
+      }
+    } catch (err) {
+      console.error('DocumentViewer - Error retrieving document:', err);
+      setError('Error retrieving document.');
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      loadDocument(id).finally(() => setLoading(false));
     } else {
       setError('No document ID provided.');
       setLoading(false);
@@ -82,31 +92,7 @@ const DocumentViewer = () => {
     if (id) {
       setLoading(true);
       setError(null);
-      // Trigger a re-fetch
-      setTimeout(() => {
-        // Try documentStore first
-        let foundDoc = documentStore.getDocument(id);
-        
-        // If not found, try localStorage
-        if (!foundDoc) {
-          const docData = localStorage.getItem(`doc_${id}`);
-          if (docData) {
-            try {
-              foundDoc = JSON.parse(docData);
-            } catch (parseError) {
-              console.error('Error parsing document from localStorage:', parseError);
-            }
-          }
-        }
-        
-        if (foundDoc) {
-          setDoc(foundDoc);
-          setError(null);
-        } else {
-          setError('Document still not found. Please return to the main page.');
-        }
-        setLoading(false);
-      }, 500);
+      loadDocument(id).finally(() => setLoading(false));
     }
   };
 

@@ -3,6 +3,7 @@ import { ProcessedDocument } from './pdfProcessor';
 
 class DocumentStore {
   private documents: Map<string, ProcessedDocument> = new Map();
+  private initialized: boolean = false;
 
   constructor() {
     // Load documents from localStorage on initialization
@@ -10,11 +11,16 @@ class DocumentStore {
   }
 
   private loadFromStorage(): void {
+    if (this.initialized) return;
+    
     try {
       console.log('DocumentStore - Loading documents from localStorage');
       const keys = Object.keys(localStorage);
       const docKeys = keys.filter(key => key.startsWith('doc_'));
       console.log('DocumentStore - Found document keys:', docKeys);
+      
+      // Clear existing documents to avoid duplicates
+      this.documents.clear();
       
       docKeys.forEach(key => {
         const docData = localStorage.getItem(key);
@@ -29,10 +35,17 @@ class DocumentStore {
         }
       });
       
+      this.initialized = true;
       console.log('DocumentStore - Total documents loaded:', this.documents.size);
     } catch (error) {
       console.error('DocumentStore - Error loading documents from storage:', error);
     }
+  }
+
+  // Force reload from localStorage
+  private forceReload(): void {
+    this.initialized = false;
+    this.loadFromStorage();
   }
 
   storeDocument(document: ProcessedDocument): void {
@@ -55,11 +68,15 @@ class DocumentStore {
 
   getDocument(id: string): ProcessedDocument | null {
     console.log('DocumentStore - Getting document:', id);
+    
+    // Ensure we've loaded from localStorage
+    this.loadFromStorage();
+    
     let doc = this.documents.get(id);
     
-    // If not found in memory, try to load from localStorage
+    // If still not found, try direct localStorage access
     if (!doc) {
-      console.log('DocumentStore - Document not in memory, checking localStorage');
+      console.log('DocumentStore - Document not in memory, trying direct localStorage access');
       try {
         const docData = localStorage.getItem(`doc_${id}`);
         if (docData) {
@@ -80,8 +97,8 @@ class DocumentStore {
   }
 
   getAllDocuments(): ProcessedDocument[] {
-    // Ensure we have all documents from localStorage
-    this.loadFromStorage();
+    // Force a fresh load from localStorage
+    this.forceReload();
     const docs = Array.from(this.documents.values());
     console.log('DocumentStore - Getting all documents, count:', docs.length);
     return docs;
