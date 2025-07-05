@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,13 @@ const Index = () => {
   const [processingProgress, setProcessingProgress] = useState<{ [key: string]: number }>({});
   const { toast } = useToast();
 
+  // Load existing documents on component mount
+  useEffect(() => {
+    const existingDocs = documentStore.getAllDocuments();
+    setDocuments(existingDocs);
+    console.log('Loaded existing documents:', existingDocs);
+  }, []);
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -39,7 +47,17 @@ const Index = () => {
     handleFiles(files);
   };
 
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File input changed');
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      console.log('Selected files:', files);
+      handleFiles(files);
+    }
+  };
+
   const handleFiles = async (files: File[]) => {
+    console.log('Processing files:', files);
     const pdfFiles = files.filter(file => file.type === 'application/pdf');
     
     if (pdfFiles.length === 0) {
@@ -61,6 +79,7 @@ const Index = () => {
         originalBlob: file,
       };
 
+      console.log('Created new document:', newDoc);
       setDocuments(prev => [...prev, newDoc]);
       documentStore.storeDocument(newDoc);
       
@@ -76,12 +95,14 @@ const Index = () => {
 
   const processDocument = async (doc: ProcessedDocument, file: File) => {
     try {
+      console.log('Starting processing for document:', doc.id);
       // Update status to processing
       updateDocumentStatus(doc.id, 'processing');
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 0 }));
 
       // Create shareable URL
       const shareableUrl = createShareableUrl(doc.id);
+      console.log('Created shareable URL:', shareableUrl);
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 33 }));
 
       // Generate QR code for shareable link
@@ -92,7 +113,7 @@ const Index = () => {
       const processedBlob = await embedQRCodeInPDF(file, qrCodeDataUrl);
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 100 }));
 
-      // Store blob URLs
+      // Store blob URLs for download functionality
       documentStore.storeBlobUrl(doc.id, 'original', file);
       documentStore.storeBlobUrl(doc.id, 'processed', processedBlob);
 
@@ -104,6 +125,7 @@ const Index = () => {
         processedBlob
       };
 
+      console.log('Document processed successfully:', updatedDoc);
       updateDocument(doc.id, updatedDoc);
       documentStore.updateDocument(doc.id, updatedDoc);
 
@@ -267,10 +289,10 @@ const Index = () => {
                     accept=".pdf"
                     className="hidden"
                     id="file-upload"
-                    onChange={(e) => handleFiles(Array.from(e.target.files || []))}
+                    onChange={handleFileInputChange}
                   />
                   <label htmlFor="file-upload">
-                    <Button className="cursor-pointer">
+                    <Button type="button" className="cursor-pointer">
                       Select Files
                     </Button>
                   </label>
@@ -425,6 +447,28 @@ const Index = () => {
       </div>
     </div>
   );
+
+  const getStatusIcon = (status: ProcessedDocument['status']) => {
+    switch (status) {
+      case 'uploaded':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'processing':
+        return <AlertCircle className="h-4 w-4 text-blue-500" />;
+      case 'processed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+  };
+
+  const getStatusColor = (status: ProcessedDocument['status']) => {
+    switch (status) {
+      case 'uploaded':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'processed':
+        return 'bg-green-100 text-green-800';
+    }
+  };
 };
 
 export default Index;

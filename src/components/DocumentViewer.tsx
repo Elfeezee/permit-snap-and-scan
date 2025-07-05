@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, AlertCircle, ExternalLink, QrCode } from 'lucide-react';
+import { Download, FileText, AlertCircle, ExternalLink, QrCode, RefreshCw } from 'lucide-react';
 import { documentStore } from '@/utils/documentStore';
 import { ProcessedDocument } from '@/utils/pdfProcessor';
 
@@ -10,11 +11,29 @@ const DocumentViewer = () => {
   const { id } = useParams<{ id: string }>();
   const [doc, setDoc] = useState<ProcessedDocument | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('DocumentViewer - Looking for document with ID:', id);
     if (id) {
-      const foundDoc = documentStore.getDocument(id);
-      setDoc(foundDoc);
+      try {
+        const foundDoc = documentStore.getDocument(id);
+        console.log('DocumentViewer - Found document:', foundDoc);
+        
+        if (foundDoc) {
+          setDoc(foundDoc);
+          setError(null);
+        } else {
+          console.log('DocumentViewer - Document not found in store');
+          setError('Document not found. It may have been processed in a different session.');
+        }
+      } catch (err) {
+        console.error('DocumentViewer - Error retrieving document:', err);
+        setError('Error retrieving document.');
+      }
+      setLoading(false);
+    } else {
+      setError('No document ID provided.');
       setLoading(false);
     }
   }, [id]);
@@ -22,7 +41,10 @@ const DocumentViewer = () => {
   const handleDownload = () => {
     if (!doc) return;
     
+    console.log('Attempting to download document:', doc.id);
     const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
+    console.log('Retrieved blob URL:', blobUrl);
+    
     if (blobUrl) {
       const link = document.createElement('a');
       link.href = blobUrl;
@@ -32,12 +54,29 @@ const DocumentViewer = () => {
       document.body.removeChild(link);
     } else {
       // If blob URL is not available, show a message
-      alert('The processed PDF is not available for download. Please return to the main page and process the document again.');
+      alert('The processed PDF is not available for download. The document may have been processed in a different session.');
     }
   };
 
   const goToMainPage = () => {
     window.location.href = '/';
+  };
+
+  const refreshDocument = () => {
+    if (id) {
+      setLoading(true);
+      setError(null);
+      // Trigger a re-fetch
+      setTimeout(() => {
+        const foundDoc = documentStore.getDocument(id);
+        if (foundDoc) {
+          setDoc(foundDoc);
+        } else {
+          setError('Document still not found. Please return to the main page.');
+        }
+        setLoading(false);
+      }, 500);
+    }
   };
 
   if (loading) {
@@ -51,18 +90,26 @@ const DocumentViewer = () => {
     );
   }
 
-  if (!doc) {
+  if (error || !doc) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Document Not Found</h2>
-            <p className="text-gray-600 mb-4">The requested document could not be found. It may have been processed in a different session.</p>
-            <Button onClick={goToMainPage} className="w-full">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Go to Main Page
-            </Button>
+            <p className="text-gray-600 mb-4">
+              {error || 'The requested document could not be found.'}
+            </p>
+            <div className="space-y-2">
+              <Button onClick={refreshDocument} variant="outline" className="w-full">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+              <Button onClick={goToMainPage} className="w-full">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Go to Main Page
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -91,7 +138,13 @@ const DocumentViewer = () => {
               </div>
               <div>
                 <span className="font-medium text-gray-700">Status:</span>
-                <span className="ml-2 text-green-600 font-medium">Processed</span>
+                <span className="ml-2 text-green-600 font-medium">
+                  {doc.status === 'processed' ? 'Processed' : doc.status}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Document ID:</span>
+                <span className="ml-2 text-gray-600 font-mono text-xs">{doc.id}</span>
               </div>
             </div>
             
@@ -118,6 +171,11 @@ const DocumentViewer = () => {
                 <p className="mt-2 font-medium">
                   Scan the QR code to access this document page instantly!
                 </p>
+                {doc.shareableUrl && (
+                  <p className="mt-2 text-xs text-blue-600 break-all">
+                    Direct link: {doc.shareableUrl}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
