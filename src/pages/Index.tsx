@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,8 +8,10 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ProcessedDocument, 
-  generateUniqueId,
-  processAndUploadDocument
+  generateUniqueId, 
+  generateQRCode, 
+  embedQRCodeInPDF, 
+  createShareableUrl 
 } from '@/utils/pdfProcessor';
 import { documentStore } from '@/utils/documentStore';
 
@@ -80,30 +83,49 @@ const Index = () => {
       setDocuments(prev => [...prev, newDoc]);
       documentStore.storeDocument(newDoc);
       
-      // Start processing with Firebase integration
-      processDocumentWithFirebase(newDoc, file);
+      // Start processing
+      processDocument(newDoc, file);
     }
 
     toast({
       title: "Files Uploaded",
-      description: `${pdfFiles.length} PDF file(s) uploaded successfully. Processing and uploading to Firebase...`,
+      description: `${pdfFiles.length} PDF file(s) uploaded successfully. Processing started.`,
     });
   };
 
-  const processDocumentWithFirebase = async (doc: ProcessedDocument, file: File) => {
+  const processDocument = async (doc: ProcessedDocument, file: File) => {
     try {
-      console.log('Starting Firebase processing for document:', doc.id);
+      console.log('Starting processing for document:', doc.id);
       // Update status to processing
       updateDocumentStatus(doc.id, 'processing');
       setProcessingProgress(prev => ({ ...prev, [doc.id]: 0 }));
 
-      // Use the new Firebase-integrated processing function
-      const updatedDoc = await processAndUploadDocument(doc, file, (progress) => {
-        console.log(`Processing progress for ${doc.id}: ${progress}%`);
-        setProcessingProgress(prev => ({ ...prev, [doc.id]: progress }));
-      });
+      // Create shareable URL
+      const shareableUrl = createShareableUrl(doc.id);
+      console.log('Created shareable URL:', shareableUrl);
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 33 }));
 
-      console.log('Document processed and uploaded to Firebase successfully:', updatedDoc);
+      // Generate QR code for shareable link
+      const qrCodeDataUrl = await generateQRCode(shareableUrl);
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 66 }));
+
+      // Embed QR code in PDF
+      const processedBlob = await embedQRCodeInPDF(file, qrCodeDataUrl);
+      setProcessingProgress(prev => ({ ...prev, [doc.id]: 100 }));
+
+      // Store blob URLs for download functionality
+      documentStore.storeBlobUrl(doc.id, 'original', file);
+      documentStore.storeBlobUrl(doc.id, 'processed', processedBlob);
+
+      // Update document with processing results
+      const updatedDoc: ProcessedDocument = {
+        ...doc,
+        status: 'processed',
+        shareableUrl,
+        processedBlob
+      };
+
+      console.log('Document processed successfully:', updatedDoc);
       updateDocument(doc.id, updatedDoc);
       documentStore.updateDocument(doc.id, updatedDoc);
 
@@ -118,25 +140,15 @@ const Index = () => {
 
       toast({
         title: "Processing Complete",
-        description: `${doc.name} processed and uploaded to Firebase Cloud Storage successfully.`,
+        description: `QR code embedded in ${doc.name}.`,
       });
 
     } catch (error) {
-      console.error('Error processing document with Firebase:', error);
+      console.error('Error processing document:', error);
       updateDocumentStatus(doc.id, 'uploaded');
-      
-      // Clean up progress tracking
-      setProcessingProgress(prev => {
-        const newState = { ...prev };
-        delete newState[doc.id];
-        return newState;
-      });
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
       toast({
         title: "Processing Failed",
-        description: `Failed to process ${doc.name}: ${errorMessage}`,
+        description: "Failed to process the document. Please try again.",
         variant: "destructive",
       });
     }
@@ -159,16 +171,6 @@ const Index = () => {
   };
 
   const handlePrint = (doc: ProcessedDocument) => {
-    if (doc.firebaseUrl) {
-      const printWindow = window.open(doc.firebaseUrl);
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
-      }
-      return;
-    }
-    
     const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
     if (blobUrl) {
       const printWindow = window.open(blobUrl);
@@ -181,17 +183,6 @@ const Index = () => {
   };
 
   const handleDownload = (doc: ProcessedDocument) => {
-    if (doc.firebaseUrl) {
-      const link = document.createElement('a');
-      link.href = doc.firebaseUrl;
-      link.download = `processed_${doc.name}`;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
-    }
-    
     const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
     if (blobUrl) {
       const link = document.createElement('a');
@@ -247,7 +238,7 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Permit Processing System</h1>
-                <p className="text-sm text-gray-600">Upload, process, and store documents in Firebase Cloud</p>
+                <p className="text-sm text-gray-600">Upload, process, and manage permit documents</p>
               </div>
             </div>
             <Button variant="outline" className="hidden sm:flex">
@@ -270,7 +261,7 @@ const Index = () => {
                   <span>Upload Documents</span>
                 </CardTitle>
                 <CardDescription>
-                  Upload PDF permit documents for processing and Firebase storage
+                  Upload PDF permit documents for processing
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -300,11 +291,11 @@ const Index = () => {
                     id="file-upload"
                     onChange={handleFileInputChange}
                   />
-                  <Button type="button" asChild>
-                      <label htmlFor="file-upload" className="cursor-pointer">
-                        <span>Select Files</span>
-                      </label>
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <Button type="button" asChild>
+                      <span>Select Files</span>
                     </Button>
+                  </label>
                 </div>
 
                 {/* Processing Progress */}
@@ -338,7 +329,7 @@ const Index = () => {
                   <div className="text-2xl font-bold text-green-600">
                     {documents.filter(d => d.status === 'processed').length}
                   </div>
-                  <div className="text-sm text-gray-600">In Firebase</div>
+                  <div className="text-sm text-gray-600">Processed</div>
                 </CardContent>
               </Card>
             </div>
@@ -378,12 +369,6 @@ const Index = () => {
                                 <span>{doc.size}</span>
                                 <span>•</span>
                                 <span>{doc.uploadDate}</span>
-                                {doc.firebaseUrl && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="text-blue-600">Firebase Stored</span>
-                                  </>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -427,9 +412,9 @@ const Index = () => {
                 <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <Upload className="h-6 w-6 text-blue-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Firebase Storage</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Secure Upload</h3>
                 <p className="text-sm text-gray-600">
-                  Securely store documents in Firebase Cloud Storage with global access
+                  Safely upload PDF documents with secure processing
                 </p>
               </CardContent>
             </Card>
@@ -441,7 +426,7 @@ const Index = () => {
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">QR Integration</h3>
                 <p className="text-sm text-gray-600">
-                  Automatically generate scannable QR codes for direct document access
+                  Automatically generate scannable QR codes for document access
                 </p>
               </CardContent>
             </Card>
@@ -451,9 +436,9 @@ const Index = () => {
                 <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <Download className="h-6 w-6 text-purple-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Global Access</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Ready to Print</h3>
                 <p className="text-sm text-gray-600">
-                  Access processed documents from anywhere with QR code scanning
+                  Download processed documents ready for immediate printing
                 </p>
               </CardContent>
             </Card>

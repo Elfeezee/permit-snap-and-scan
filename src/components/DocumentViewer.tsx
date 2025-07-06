@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,44 +6,39 @@ import { Button } from '@/components/ui/button';
 import { Download, FileText, AlertCircle, ExternalLink, QrCode, RefreshCw } from 'lucide-react';
 import { documentStore } from '@/utils/documentStore';
 import { ProcessedDocument } from '@/utils/pdfProcessor';
-import { getDocumentFromFirebase } from '@/utils/firebaseStorage';
 
 const DocumentViewer = () => {
   const { id } = useParams<{ id: string }>();
   const [doc, setDoc] = useState<ProcessedDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [firebaseUrl, setFirebaseUrl] = useState<string | null>(null);
 
   const loadDocument = async (documentId: string) => {
     console.log('DocumentViewer - Loading document with ID:', documentId);
     
     try {
-      // First try to load from local storage
+      // Try multiple approaches to find the document
       let foundDoc = documentStore.getDocument(documentId);
       
-      // If not found locally, try Firebase
+      // If still not found, wait a bit and try again (for async loading)
       if (!foundDoc) {
-        console.log('DocumentViewer - Document not found locally, checking Firebase...');
-        const firebaseDoc = await getDocumentFromFirebase(documentId);
-        
-        if (firebaseDoc) {
-          console.log('DocumentViewer - Found document in Firebase');
-          setFirebaseUrl(firebaseDoc.url);
-          
-          // Create a ProcessedDocument from Firebase metadata
-          foundDoc = {
-            id: firebaseDoc.metadata.id,
-            name: firebaseDoc.metadata.name,
-            size: firebaseDoc.metadata.size,
-            uploadDate: firebaseDoc.metadata.uploadDate,
-            status: 'processed' as const,
-            shareableUrl: `${window.location.origin}/document/${documentId}`,
-            firebaseUrl: firebaseDoc.url
-          };
+        console.log('DocumentViewer - Document not found, waiting and retrying...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        foundDoc = documentStore.getDocument(documentId);
+      }
+      
+      // Final attempt with direct localStorage access
+      if (!foundDoc) {
+        console.log('DocumentViewer - Final attempt with direct localStorage access');
+        const docData = localStorage.getItem(`doc_${documentId}`);
+        if (docData) {
+          try {
+            foundDoc = JSON.parse(docData);
+            console.log('DocumentViewer - Found document in localStorage:', foundDoc);
+          } catch (parseError) {
+            console.error('DocumentViewer - Error parsing document from localStorage:', parseError);
+          }
         }
-      } else if (foundDoc.firebaseUrl) {
-        setFirebaseUrl(foundDoc.firebaseUrl);
       }
       
       if (foundDoc) {
@@ -51,11 +47,11 @@ const DocumentViewer = () => {
         setError(null);
       } else {
         console.log('DocumentViewer - Document not found anywhere');
-        setError('Document not found. It may not exist or has been deleted.');
+        setError('Document not found. It may have been processed in a different session.');
       }
     } catch (err) {
       console.error('DocumentViewer - Error retrieving document:', err);
-      setError('Error retrieving document from storage.');
+      setError('Error retrieving document.');
     }
   };
 
@@ -72,21 +68,9 @@ const DocumentViewer = () => {
     if (!doc) return;
     
     console.log('Attempting to download document:', doc.id);
-    
-    // Try Firebase URL first
-    if (firebaseUrl) {
-      const link = document.createElement('a');
-      link.href = firebaseUrl;
-      link.download = `processed_${doc.name}`;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
-    }
-    
-    // Fallback to local storage
     const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
+    console.log('Retrieved blob URL:', blobUrl);
+    
     if (blobUrl) {
       const link = document.createElement('a');
       link.href = blobUrl;
@@ -95,7 +79,8 @@ const DocumentViewer = () => {
       link.click();
       document.body.removeChild(link);
     } else {
-      alert('The processed PDF is not available for download.');
+      // If blob URL is not available, show a message
+      alert('The processed PDF is not available for download. The document may have been processed in a different session.');
     }
   };
 
@@ -107,7 +92,6 @@ const DocumentViewer = () => {
     if (id) {
       setLoading(true);
       setError(null);
-      setFirebaseUrl(null);
       loadDocument(id).finally(() => setLoading(false));
     }
   };
@@ -176,10 +160,8 @@ const DocumentViewer = () => {
                 </span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Storage:</span>
-                <span className="ml-2 text-blue-600 font-medium">
-                  {firebaseUrl ? 'Firebase Cloud' : 'Local Session'}
-                </span>
+                <span className="font-medium text-gray-700">Document ID:</span>
+                <span className="ml-2 text-gray-600 font-mono text-xs">{doc.id}</span>
               </div>
             </div>
             
@@ -201,10 +183,10 @@ const DocumentViewer = () => {
               </h3>
               <div className="text-sm text-blue-800 space-y-2">
                 <p>
-                  This PDF has been processed with a QR code embedded and stored in Firebase Cloud Storage for secure access.
+                  This PDF has been processed with a QR code embedded at the top-right corner for easy sharing and access.
                 </p>
                 <p className="mt-2 font-medium">
-                  Scan the QR code to access this document from anywhere!
+                  Scan the QR code to access this document page instantly!
                 </p>
                 {doc.shareableUrl && (
                   <p className="mt-2 text-xs text-blue-600 break-all">
