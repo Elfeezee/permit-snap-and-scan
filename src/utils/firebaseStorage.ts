@@ -17,12 +17,13 @@ export const uploadDocumentToFirebase = async (
   metadata: FirebaseDocumentMetadata
 ): Promise<string> => {
   try {
-    console.log('Uploading document to Firebase:', documentId);
+    console.log('Uploading document to Firebase:', documentId, 'Size:', processedBlob.size);
     
     // Create a reference to the file in Firebase Storage
     const storageRef = ref(storage, `documents/${documentId}.pdf`);
     
     // Upload the file with metadata
+    console.log('Starting upload to Firebase Storage...');
     const uploadResult = await uploadBytes(storageRef, processedBlob, {
       customMetadata: {
         documentId: metadata.id,
@@ -32,14 +33,20 @@ export const uploadDocumentToFirebase = async (
       }
     });
     
+    console.log('Upload completed, getting download URL...');
+    
     // Get the download URL
     const downloadURL = await getDownloadURL(uploadResult.ref);
-    console.log('Document uploaded successfully:', downloadURL);
+    console.log('Document uploaded successfully to Firebase:', downloadURL);
     
     return downloadURL;
   } catch (error) {
     console.error('Error uploading document to Firebase:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(`Firebase upload failed: ${error.message}`);
+    } else {
+      throw new Error('Firebase upload failed: Unknown error');
+    }
   }
 };
 

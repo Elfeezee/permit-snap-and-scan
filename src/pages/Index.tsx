@@ -99,6 +99,7 @@ const Index = () => {
 
       // Use the new Firebase-integrated processing function
       const updatedDoc = await processAndUploadDocument(doc, file, (progress) => {
+        console.log(`Processing progress for ${doc.id}: ${progress}%`);
         setProcessingProgress(prev => ({ ...prev, [doc.id]: progress }));
       });
 
@@ -117,7 +118,7 @@ const Index = () => {
 
       toast({
         title: "Processing Complete",
-        description: `${doc.name} processed and uploaded to Firebase Cloud Storage.`,
+        description: `${doc.name} processed and uploaded to Firebase Cloud Storage successfully.`,
       });
 
     } catch (error) {
@@ -131,9 +132,11 @@ const Index = () => {
         return newState;
       });
       
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
       toast({
         title: "Processing Failed",
-        description: "Failed to process and upload the document. Please check your Firebase configuration.",
+        description: `Failed to process ${doc.name}: ${errorMessage}`,
         variant: "destructive",
       });
     }
