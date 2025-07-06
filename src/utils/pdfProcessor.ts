@@ -59,14 +59,6 @@ export const embedQRCodeInPDF = async (
       height: qrSize,
     });
     
-    // Add text label for QR code
-    firstPage.drawText('Scan for link', {
-      x: width - qrSize - 20,
-      y: height - 15,
-      size: 7,
-      color: rgb(0, 0, 0),
-    });
-    
     const pdfBytes = await pdfDoc.save();
     return new Blob([pdfBytes], { type: 'application/pdf' });
   } catch (error) {
