@@ -291,9 +291,9 @@ const Index = () => {
                     id="file-upload"
                     onChange={handleFileInputChange}
                   />
-                  <label htmlFor="file-upload">
-                    <Button type="button" className="cursor-pointer">
-                      Select Files
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <Button type="button" asChild>
+                      <span>Select Files</span>
                     </Button>
                   </label>
                 </div>
