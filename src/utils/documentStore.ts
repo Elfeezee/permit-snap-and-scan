@@ -52,21 +52,40 @@ class DocumentStore {
     console.log('DocumentStore - Storing document:', document.id, document.name);
     this.documents.set(document.id, document);
     
-    // Store in localStorage for persistence
+    // Store in localStorage for persistence (including processed PDF data)
     try {
       const docToStore = {
         ...document,
-        originalBlob: undefined, // Don't store blobs in localStorage
-        processedBlob: undefined
+        originalBlob: undefined, // Don't store original blob to save space
+        processedBlobData: document.processedBlob ? await this.blobToBase64(document.processedBlob) : undefined
       };
       localStorage.setItem(`doc_${document.id}`, JSON.stringify(docToStore));
-      console.log('DocumentStore - Document stored in localStorage');
+      console.log('DocumentStore - Document stored in localStorage with processed data');
     } catch (error) {
       console.error('DocumentStore - Error storing document in localStorage:', error);
     }
   }
 
-  getDocument(id: string): ProcessedDocument | null {
+  private async blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  private base64ToBlob(base64: string): Blob {
+    const byteCharacters = atob(base64.split(',')[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: 'application/pdf' });
+  }
+
+  async getDocument(id: string): Promise<ProcessedDocument | null> {
     console.log('DocumentStore - Getting document:', id);
     
     // Ensure we've loaded from localStorage
@@ -80,8 +99,14 @@ class DocumentStore {
       try {
         const docData = localStorage.getItem(`doc_${id}`);
         if (docData) {
-          doc = JSON.parse(docData);
-          if (doc) {
+          const storedDoc = JSON.parse(docData);
+          if (storedDoc) {
+            // Restore processed blob from base64 if available
+            if (storedDoc.processedBlobData) {
+              storedDoc.processedBlob = this.base64ToBlob(storedDoc.processedBlobData);
+              delete storedDoc.processedBlobData;
+            }
+            doc = storedDoc;
             // Add back to memory for future access
             this.documents.set(id, doc);
             console.log('DocumentStore - Loaded document from localStorage:', doc.id);
@@ -104,19 +129,19 @@ class DocumentStore {
     return docs;
   }
 
-  updateDocument(id: string, updates: Partial<ProcessedDocument>): void {
+  async updateDocument(id: string, updates: Partial<ProcessedDocument>): Promise<void> {
     console.log('DocumentStore - Updating document:', id);
     const doc = this.documents.get(id);
     if (doc) {
       const updatedDoc = { ...doc, ...updates };
       this.documents.set(id, updatedDoc);
       
-      // Update localStorage
+      // Update localStorage with processed blob data
       try {
         const docToStore = {
           ...updatedDoc,
           originalBlob: undefined,
-          processedBlob: undefined
+          processedBlobData: updatedDoc.processedBlob ? await this.blobToBase64(updatedDoc.processedBlob) : undefined
         };
         localStorage.setItem(`doc_${id}`, JSON.stringify(docToStore));
         console.log('DocumentStore - Document updated in localStorage');

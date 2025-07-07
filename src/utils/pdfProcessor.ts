@@ -51,20 +51,12 @@ export const embedQRCodeInPDF = async (
     const qrImage = await pdfDoc.embedPng(qrCodeDataUrl);
     const qrSize = 60;
     
-    // Position QR code at top-right corner
+    // Position QR code at top-right corner (removed the text label)
     firstPage.drawImage(qrImage, {
       x: width - qrSize - 20,
       y: height - qrSize - 20,
       width: qrSize,
       height: qrSize,
-    });
-    
-    // Add text label for QR code
-    firstPage.drawText('Scan for link', {
-      x: width - qrSize - 20,
-      y: height - 15,
-      size: 7,
-      color: rgb(0, 0, 0),
     });
     
     const pdfBytes = await pdfDoc.save();
