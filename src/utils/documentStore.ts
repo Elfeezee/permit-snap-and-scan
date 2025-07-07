@@ -48,7 +48,7 @@ class DocumentStore {
     this.loadFromStorage();
   }
 
-  storeDocument(document: ProcessedDocument): void {
+  async storeDocument(document: ProcessedDocument): Promise<void> {
     console.log('DocumentStore - Storing document:', document.id, document.name);
     this.documents.set(document.id, document);
     
