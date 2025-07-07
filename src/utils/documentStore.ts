@@ -3,6 +3,7 @@ import { ProcessedDocument } from './pdfProcessor';
 
 class DocumentStore {
   private documents: Map<string, ProcessedDocument> = new Map();
+  private blobUrls: Map<string, string> = new Map();
 
   storeDocument(document: ProcessedDocument): void {
     console.log('DocumentStore - Storing document:', document.id, document.name);
@@ -15,6 +16,20 @@ class DocumentStore {
     } catch (error) {
       console.error('DocumentStore - Error storing document in localStorage:', error);
     }
+  }
+
+  storeBlobUrl(documentId: string, type: 'original' | 'processed', blob: Blob): void {
+    const blobUrl = URL.createObjectURL(blob);
+    const key = `${documentId}_${type}`;
+    this.blobUrls.set(key, blobUrl);
+    console.log('DocumentStore - Stored blob URL for:', documentId, type);
+  }
+
+  getBlobUrl(documentId: string, type: 'original' | 'processed'): string | null {
+    const key = `${documentId}_${type}`;
+    const url = this.blobUrls.get(key);
+    console.log('DocumentStore - Getting blob URL for:', documentId, type, url ? 'Found' : 'Not found');
+    return url || null;
   }
 
   getDocument(id: string): ProcessedDocument | null {
