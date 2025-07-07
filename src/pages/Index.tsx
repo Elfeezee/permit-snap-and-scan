@@ -127,7 +127,7 @@ const Index = () => {
 
       console.log('Document processed successfully:', updatedDoc);
       updateDocument(doc.id, updatedDoc);
-      await documentStore.updateDocument(doc.id, updatedDoc);
+      documentStore.updateDocument(doc.id, updatedDoc);
 
       // Clean up progress tracking
       setTimeout(() => {
@@ -140,7 +140,7 @@ const Index = () => {
 
       toast({
         title: "Processing Complete",
-        description: `QR code embedded in ${doc.name}. Document stored locally for QR access.`,
+        description: `QR code embedded in ${doc.name}.`,
       });
 
     } catch (error) {

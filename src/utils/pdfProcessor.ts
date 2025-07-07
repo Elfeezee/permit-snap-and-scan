@@ -51,7 +51,7 @@ export const embedQRCodeInPDF = async (
     const qrImage = await pdfDoc.embedPng(qrCodeDataUrl);
     const qrSize = 60;
     
-    // Position QR code at top-right corner (removed the text label)
+    // Position QR code at top-right corner
     firstPage.drawImage(qrImage, {
       x: width - qrSize - 20,
       y: height - qrSize - 20,

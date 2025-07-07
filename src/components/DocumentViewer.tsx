@@ -12,28 +12,42 @@ const DocumentViewer = () => {
   const [doc, setDoc] = useState<ProcessedDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const loadDocument = async (documentId: string) => {
     console.log('DocumentViewer - Loading document with ID:', documentId);
     
     try {
-      const foundDoc = await documentStore.getDocument(documentId);
+      // Try multiple approaches to find the document
+      let foundDoc = documentStore.getDocument(documentId);
+      
+      // If still not found, wait a bit and try again (for async loading)
+      if (!foundDoc) {
+        console.log('DocumentViewer - Document not found, waiting and retrying...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        foundDoc = documentStore.getDocument(documentId);
+      }
+      
+      // Final attempt with direct localStorage access
+      if (!foundDoc) {
+        console.log('DocumentViewer - Final attempt with direct localStorage access');
+        const docData = localStorage.getItem(`doc_${documentId}`);
+        if (docData) {
+          try {
+            foundDoc = JSON.parse(docData);
+            console.log('DocumentViewer - Found document in localStorage:', foundDoc);
+          } catch (parseError) {
+            console.error('DocumentViewer - Error parsing document from localStorage:', parseError);
+          }
+        }
+      }
       
       if (foundDoc) {
         console.log('DocumentViewer - Successfully loaded document:', foundDoc.name);
         setDoc(foundDoc);
         setError(null);
-        
-        // Create blob URL for PDF viewing if processed blob exists
-        if (foundDoc.processedBlob) {
-          const url = URL.createObjectURL(foundDoc.processedBlob);
-          setPdfUrl(url);
-          console.log('DocumentViewer - Created PDF URL for viewing');
-        }
       } else {
-        console.log('DocumentViewer - Document not found');
-        setError('Document not found. The QR code may be invalid or the document may have been processed on a different device.');
+        console.log('DocumentViewer - Document not found anywhere');
+        setError('Document not found. It may have been processed in a different session.');
       }
     } catch (err) {
       console.error('DocumentViewer - Error retrieving document:', err);
@@ -48,27 +62,26 @@ const DocumentViewer = () => {
       setError('No document ID provided.');
       setLoading(false);
     }
-
-    // Cleanup blob URL on unmount
-    return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
-    };
   }, [id]);
 
   const handleDownload = () => {
-    if (!doc || !doc.processedBlob) return;
+    if (!doc) return;
     
-    console.log('Downloading document:', doc.id);
-    const url = URL.createObjectURL(doc.processedBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `processed_${doc.name}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    console.log('Attempting to download document:', doc.id);
+    const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
+    console.log('Retrieved blob URL:', blobUrl);
+    
+    if (blobUrl) {
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `processed_${doc.name}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // If blob URL is not available, show a message
+      alert('The processed PDF is not available for download. The document may have been processed in a different session.');
+    }
   };
 
   const goToMainPage = () => {
@@ -79,7 +92,6 @@ const DocumentViewer = () => {
     if (id) {
       setLoading(true);
       setError(null);
-      setPdfUrl(null);
       loadDocument(id).finally(() => setLoading(false));
     }
   };
@@ -123,91 +135,68 @@ const DocumentViewer = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Document Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-6 w-6 text-blue-600" />
-                <span>Document: {doc.name}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-gray-700">Upload Date:</span>
-                  <span className="ml-2 text-gray-600">{doc.uploadDate}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">File Size:</span>
-                  <span className="ml-2 text-gray-600">{doc.size}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Status:</span>
-                  <span className="ml-2 text-green-600 font-medium">
-                    {doc.status === 'processed' ? 'Processed' : doc.status}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Document ID:</span>
-                  <span className="ml-2 text-gray-600 font-mono text-xs">{doc.id}</span>
-                </div>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <FileText className="h-6 w-6 text-blue-600" />
+              <span>Document: {doc.name}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-700">Upload Date:</span>
+                <span className="ml-2 text-gray-600">{doc.uploadDate}</span>
               </div>
-              
-              <div className="flex flex-col space-y-2">
-                <Button onClick={handleDownload} size="lg" disabled={!doc.processedBlob}>
-                  <Download className="h-5 w-5 mr-2" />
-                  Download Processed PDF
-                </Button>
-                <Button onClick={goToMainPage} variant="outline" size="lg">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Return to Main Page
-                </Button>
+              <div>
+                <span className="font-medium text-gray-700">File Size:</span>
+                <span className="ml-2 text-gray-600">{doc.size}</span>
               </div>
-              
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-medium text-blue-900 mb-2 flex items-center">
-                  <QrCode className="h-5 w-5 mr-2" />
-                  About This Document
-                </h3>
-                <div className="text-sm text-blue-800 space-y-2">
-                  <p>
-                    This PDF has been processed with a QR code embedded at the top-right corner for easy sharing and access.
+              <div>
+                <span className="font-medium text-gray-700">Status:</span>
+                <span className="ml-2 text-green-600 font-medium">
+                  {doc.status === 'processed' ? 'Processed' : doc.status}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Document ID:</span>
+                <span className="ml-2 text-gray-600 font-mono text-xs">{doc.id}</span>
+              </div>
+            </div>
+            
+            <div className="flex justify-center space-x-4">
+              <Button onClick={handleDownload} size="lg">
+                <Download className="h-5 w-5 mr-2" />
+                Download Processed PDF
+              </Button>
+              <Button onClick={goToMainPage} variant="outline" size="lg">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Return to Main Page
+              </Button>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-blue-900 mb-2 flex items-center">
+                <QrCode className="h-5 w-5 mr-2" />
+                About This Document
+              </h3>
+              <div className="text-sm text-blue-800 space-y-2">
+                <p>
+                  This PDF has been processed with a QR code embedded at the top-right corner for easy sharing and access.
+                </p>
+                <p className="mt-2 font-medium">
+                  Scan the QR code to access this document page instantly!
+                </p>
+                {doc.shareableUrl && (
+                  <p className="mt-2 text-xs text-blue-600 break-all">
+                    Direct link: {doc.shareableUrl}
                   </p>
-                  <p className="mt-2 font-medium">
-                    The QR code links directly to this page for instant access!
-                  </p>
-                </div>
+                )}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* PDF Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Document Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pdfUrl ? (
-                <div className="w-full h-96 border rounded-lg overflow-hidden">
-                  <iframe
-                    src={pdfUrl}
-                    className="w-full h-full"
-                    title="PDF Preview"
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-96 border rounded-lg flex items-center justify-center bg-gray-50">
-                  <div className="text-center text-gray-500">
-                    <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>PDF preview not available</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
