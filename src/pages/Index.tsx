@@ -24,11 +24,6 @@ const Index = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  // Redirect to auth if not logged in
-  if (!authLoading && !user) {
-    return <Navigate to="/auth" replace />;
-  }
-
   // Load existing documents on component mount
   useEffect(() => {
     if (user) {
@@ -310,6 +305,11 @@ const Index = () => {
         return 'bg-green-100 text-green-800';
     }
   };
+
+  // Redirect to auth if not logged in (after all hooks have been called)
+  if (!authLoading && !user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
