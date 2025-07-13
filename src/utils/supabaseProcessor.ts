@@ -76,7 +76,7 @@ export const embedQRCodeInPDF = async (
 };
 
 export const createShareableUrl = (documentId: string): string => {
-  return `https://kasupda.com/document/${documentId}`;
+  return `https://permit-snap-and-scan.vercel.app/document/${documentId}`;
 };
 
 export const processDocumentWithSupabase = async (
