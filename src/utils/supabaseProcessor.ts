@@ -25,8 +25,11 @@ export const generateUniqueId = async (): Promise<string> => {
 export const generateQRCode = async (url: string): Promise<string> => {
   try {
     const qrDataUrl = await QRCode.toDataURL(url, {
-      width: 80,
-      margin: 1,
+      width: 200,
+      margin: 4,
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      quality: 1,
       color: {
         dark: '#000000',
         light: '#FFFFFF'
@@ -54,12 +57,12 @@ export const embedQRCodeInPDF = async (
     
     // Embed the QR code image at the top-right corner
     const qrImage = await pdfDoc.embedPng(qrCodeDataUrl);
-    const qrSize = 60;
+    const qrSize = 100;
     
-    // Position QR code at top-right corner
+    // Position QR code at top-right corner with better visibility
     firstPage.drawImage(qrImage, {
-      x: width - qrSize - 20,
-      y: height - qrSize - 20,
+      x: width - qrSize - 15,
+      y: height - qrSize - 15,
       width: qrSize,
       height: qrSize,
     });
