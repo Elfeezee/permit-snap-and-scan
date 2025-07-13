@@ -141,7 +141,7 @@ const DocumentViewer = () => {
               <div>
                 <span className="font-medium text-gray-700">Status:</span>
                 <span className="ml-2 text-green-600 font-medium">
-                  {doc.status === 'processed' ? 'Processed' : doc.status}
+                  {doc.status === 'processed' ? 'VERIFIED' : doc.status}
                 </span>
               </div>
               <div>
@@ -159,7 +159,7 @@ const DocumentViewer = () => {
             <div className="flex justify-center">
               <Button onClick={handleDownload} size="lg">
                 <Download className="h-5 w-5 mr-2" />
-                Download Processed PDF
+                View Permit
               </Button>
             </div>
             
@@ -172,14 +172,6 @@ const DocumentViewer = () => {
                 <p className="text-green-600 font-medium">
                   This Permit is original and issued by kasupda as authentic.
                 </p>
-                <p className="mt-2 font-medium">
-                  Scan the QR code to access this document page instantly!
-                </p>
-                {doc.shareable_url && (
-                  <p className="mt-2 text-xs text-blue-600 break-all">
-                    Direct link: {doc.shareable_url}
-                  </p>
-                )}
               </div>
             </div>
           </CardContent>
