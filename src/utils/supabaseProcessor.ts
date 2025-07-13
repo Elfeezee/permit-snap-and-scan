@@ -76,7 +76,7 @@ export const embedQRCodeInPDF = async (
 };
 
 export const createShareableUrl = (documentId: string): string => {
-  return `https://permit-snap-and-scan.vercel.app/document/${documentId}`;
+  return `${window.location.origin}/document/${documentId}`;
 };
 
 export const processDocumentWithSupabase = async (
