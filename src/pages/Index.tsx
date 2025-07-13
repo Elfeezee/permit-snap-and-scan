@@ -1,32 +1,95 @@
 
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer } from 'lucide-react';
+import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { Navigate } from 'react-router-dom';
 import { 
-  ProcessedDocument, 
-  generateUniqueId, 
-  generateQRCode, 
-  embedQRCodeInPDF, 
-  createShareableUrl 
-} from '@/utils/pdfProcessor';
-import { documentStore } from '@/utils/documentStore';
+  ProcessedDocument,
+  processDocumentWithSupabase,
+  getProcessedDocumentUrl,
+  downloadProcessedDocument
+} from '@/utils/supabaseProcessor';
+import { documentService, DocumentRecord } from '@/services/documentService';
 
 const Index = () => {
   const [documents, setDocuments] = useState<ProcessedDocument[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [processingProgress, setProcessingProgress] = useState<{ [key: string]: number }>({});
+  const [loading, setLoading] = useState(true);
+  const { user, signOut, loading: authLoading } = useAuth();
   const { toast } = useToast();
+
+  // Redirect to auth if not logged in
+  if (!authLoading && !user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   // Load existing documents on component mount
   useEffect(() => {
-    const existingDocs = documentStore.getAllDocuments();
-    setDocuments(existingDocs);
-    console.log('Loaded existing documents:', existingDocs);
-  }, []);
+    if (user) {
+      loadDocuments();
+    }
+  }, [user]);
+
+  // Set up real-time subscription for document updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = documentService.subscribeToDocuments((payload) => {
+      console.log('Real-time update:', payload);
+      // Reload documents when there are changes
+      loadDocuments();
+    }, user.id);
+
+    return () => {
+      if (channel) {
+        documentService.unsubscribeFromDocuments(channel);
+      }
+    };
+  }, [user]);
+
+  const loadDocuments = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const { data: dbDocs, error } = await documentService.getDocuments(user.id);
+      
+      if (error) {
+        console.error('Error loading documents:', error);
+        toast({
+          title: "Error Loading Documents",
+          description: "Failed to load your documents.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (dbDocs) {
+        // Convert database records to ProcessedDocument format
+        const processedDocs: ProcessedDocument[] = dbDocs.map(dbDoc => ({
+          id: dbDoc.id,
+          name: dbDoc.name,
+          size: `${dbDoc.size_mb} MB`,
+          uploadDate: new Date(dbDoc.upload_date).toLocaleDateString(),
+          status: dbDoc.status,
+          shareableUrl: dbDoc.shareable_url,
+          dbRecord: dbDoc
+        }));
+        
+        setDocuments(processedDocs);
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -57,6 +120,15 @@ const Index = () => {
   };
 
   const handleFiles = async (files: File[]) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to upload documents.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log('Processing files:', files);
     const pdfFiles = files.filter(file => file.type === 'application/pdf');
     
@@ -70,21 +142,8 @@ const Index = () => {
     }
 
     for (const file of pdfFiles) {
-      const newDoc: ProcessedDocument = {
-        id: generateUniqueId(),
-        name: file.name,
-        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-        uploadDate: new Date().toLocaleDateString(),
-        status: 'uploaded',
-        originalBlob: file,
-      };
-
-      console.log('Created new document:', newDoc);
-      setDocuments(prev => [...prev, newDoc]);
-      documentStore.storeDocument(newDoc);
-      
-      // Start processing
-      processDocument(newDoc, file);
+      // Start processing each file
+      processDocument(file);
     }
 
     toast({
@@ -93,59 +152,55 @@ const Index = () => {
     });
   };
 
-  const processDocument = async (doc: ProcessedDocument, file: File) => {
+  const processDocument = async (file: File) => {
+    if (!user) return;
+
+    const tempId = `temp-${Date.now()}`;
+    
     try {
-      console.log('Starting processing for document:', doc.id);
-      // Update status to processing
-      updateDocumentStatus(doc.id, 'processing');
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 0 }));
+      console.log('Starting processing for file:', file.name);
+      
+      // Set initial progress
+      setProcessingProgress(prev => ({ ...prev, [tempId]: 0 }));
 
-      // Create shareable URL
-      const shareableUrl = createShareableUrl(doc.id);
-      console.log('Created shareable URL:', shareableUrl);
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 33 }));
+      // Process document using Supabase
+      const processedDoc = await processDocumentWithSupabase(
+        file,
+        user.id,
+        (progress) => {
+          setProcessingProgress(prev => ({ ...prev, [tempId]: progress }));
+        }
+      );
 
-      // Generate QR code for shareable link
-      const qrCodeDataUrl = await generateQRCode(shareableUrl);
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 66 }));
+      console.log('Document processed successfully:', processedDoc);
 
-      // Embed QR code in PDF
-      const processedBlob = await embedQRCodeInPDF(file, qrCodeDataUrl);
-      setProcessingProgress(prev => ({ ...prev, [doc.id]: 100 }));
-
-      // Store blob URLs for download functionality
-      documentStore.storeBlobUrl(doc.id, 'original', file);
-      documentStore.storeBlobUrl(doc.id, 'processed', processedBlob);
-
-      // Update document with processing results
-      const updatedDoc: ProcessedDocument = {
-        ...doc,
-        status: 'processed',
-        shareableUrl,
-        processedBlob
-      };
-
-      console.log('Document processed successfully:', updatedDoc);
-      updateDocument(doc.id, updatedDoc);
-      documentStore.updateDocument(doc.id, updatedDoc);
+      // Reload documents to get the latest data
+      await loadDocuments();
 
       // Clean up progress tracking
       setTimeout(() => {
         setProcessingProgress(prev => {
           const newState = { ...prev };
-          delete newState[doc.id];
+          delete newState[tempId];
           return newState;
         });
       }, 1000);
 
       toast({
         title: "Processing Complete",
-        description: `QR code embedded in ${doc.name}.`,
+        description: `QR code embedded in ${processedDoc.name}.`,
       });
 
     } catch (error) {
       console.error('Error processing document:', error);
-      updateDocumentStatus(doc.id, 'uploaded');
+      
+      // Clean up progress tracking
+      setProcessingProgress(prev => {
+        const newState = { ...prev };
+        delete newState[tempId];
+        return newState;
+      });
+
       toast({
         title: "Processing Failed",
         description: "Failed to process the document. Please try again.",
@@ -154,26 +209,19 @@ const Index = () => {
     }
   };
 
-  const updateDocumentStatus = (docId: string, status: ProcessedDocument['status']) => {
-    setDocuments(prev => 
-      prev.map(doc => 
-        doc.id === docId ? { ...doc, status } : doc
-      )
-    );
-  };
+  const handlePrint = async (doc: ProcessedDocument) => {
+    if (!doc.dbRecord?.processed_file_path) {
+      toast({
+        title: "File Not Available",
+        description: "The processed file is not available for printing.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const updateDocument = (docId: string, updatedDoc: ProcessedDocument) => {
-    setDocuments(prev => 
-      prev.map(doc => 
-        doc.id === docId ? updatedDoc : doc
-      )
-    );
-  };
-
-  const handlePrint = (doc: ProcessedDocument) => {
-    const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
-    if (blobUrl) {
-      const printWindow = window.open(blobUrl);
+    const url = getProcessedDocumentUrl(doc.dbRecord);
+    if (url) {
+      const printWindow = window.open(url);
       if (printWindow) {
         printWindow.onload = () => {
           printWindow.print();
@@ -182,15 +230,52 @@ const Index = () => {
     }
   };
 
-  const handleDownload = (doc: ProcessedDocument) => {
-    const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
-    if (blobUrl) {
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `processed_${doc.name}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const handleDownload = async (doc: ProcessedDocument) => {
+    if (!doc.dbRecord) {
+      toast({
+        title: "File Not Available",
+        description: "The processed file is not available for download.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const blob = await downloadProcessedDocument(doc.dbRecord);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `processed_${doc.name}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        throw new Error('Failed to download file');
+      }
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the processed file.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -241,10 +326,16 @@ const Index = () => {
                 <p className="text-sm text-gray-600">Upload, process, and manage permit documents</p>
               </div>
             </div>
-            <Button variant="outline" className="hidden sm:flex">
-              <Download className="h-4 w-4 mr-2" />
-              Export Reports
-            </Button>
+            <div className="flex items-center space-x-4">
+              <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-600">
+                <User className="h-4 w-4" />
+                <span>{user?.email}</span>
+              </div>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -299,18 +390,15 @@ const Index = () => {
                 </div>
 
                 {/* Processing Progress */}
-                {Object.entries(processingProgress).map(([docId, progress]) => {
-                  const doc = documents.find(d => d.id === docId);
-                  return doc ? (
-                    <div key={docId} className="mt-6">
-                      <div className="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>Processing {doc.name}...</span>
-                        <span>{progress}%</span>
-                      </div>
-                      <Progress value={progress} className="w-full" />
+                {Object.entries(processingProgress).map(([tempId, progress]) => (
+                  <div key={tempId} className="mt-6">
+                    <div className="flex justify-between text-sm text-gray-600 mb-2">
+                      <span>Processing document...</span>
+                      <span>{progress}%</span>
                     </div>
-                  ) : null;
-                })}
+                    <Progress value={progress} className="w-full" />
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -348,7 +436,12 @@ const Index = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {documents.length === 0 ? (
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading documents...</p>
+                  </div>
+                ) : documents.length === 0 ? (
                   <div className="text-center py-12">
                     <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-700 mb-2">No documents uploaded</h3>

@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      documents: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          original_file_path: string | null
+          processed_date: string | null
+          processed_file_path: string | null
+          shareable_url: string | null
+          size_mb: number
+          status: string
+          updated_at: string
+          upload_date: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          original_file_path?: string | null
+          processed_date?: string | null
+          processed_file_path?: string | null
+          shareable_url?: string | null
+          size_mb: number
+          status?: string
+          updated_at?: string
+          upload_date?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          original_file_path?: string | null
+          processed_date?: string | null
+          processed_file_path?: string | null
+          shareable_url?: string | null
+          size_mb?: number
+          status?: string
+          updated_at?: string
+          upload_date?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       student_auth: {
         Row: {
           created_at: string

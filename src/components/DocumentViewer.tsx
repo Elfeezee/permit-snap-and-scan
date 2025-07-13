@@ -4,12 +4,12 @@ import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, AlertCircle, ExternalLink, QrCode, RefreshCw } from 'lucide-react';
-import { documentStore } from '@/utils/documentStore';
-import { ProcessedDocument } from '@/utils/pdfProcessor';
+import { documentService, DocumentRecord } from '@/services/documentService';
+import { downloadProcessedDocument, getProcessedDocumentUrl } from '@/utils/supabaseProcessor';
 
 const DocumentViewer = () => {
   const { id } = useParams<{ id: string }>();
-  const [doc, setDoc] = useState<ProcessedDocument | null>(null);
+  const [doc, setDoc] = useState<DocumentRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,28 +17,12 @@ const DocumentViewer = () => {
     console.log('DocumentViewer - Loading document with ID:', documentId);
     
     try {
-      // Try multiple approaches to find the document
-      let foundDoc = documentStore.getDocument(documentId);
+      const { data: foundDoc, error: loadError } = await documentService.getDocument(documentId);
       
-      // If still not found, wait a bit and try again (for async loading)
-      if (!foundDoc) {
-        console.log('DocumentViewer - Document not found, waiting and retrying...');
-        await new Promise(resolve => setTimeout(resolve, 100));
-        foundDoc = documentStore.getDocument(documentId);
-      }
-      
-      // Final attempt with direct localStorage access
-      if (!foundDoc) {
-        console.log('DocumentViewer - Final attempt with direct localStorage access');
-        const docData = localStorage.getItem(`doc_${documentId}`);
-        if (docData) {
-          try {
-            foundDoc = JSON.parse(docData);
-            console.log('DocumentViewer - Found document in localStorage:', foundDoc);
-          } catch (parseError) {
-            console.error('DocumentViewer - Error parsing document from localStorage:', parseError);
-          }
-        }
+      if (loadError) {
+        console.error('DocumentViewer - Error loading document:', loadError);
+        setError('Error loading document from database.');
+        return;
       }
       
       if (foundDoc) {
@@ -46,8 +30,8 @@ const DocumentViewer = () => {
         setDoc(foundDoc);
         setError(null);
       } else {
-        console.log('DocumentViewer - Document not found anywhere');
-        setError('Document not found. It may have been processed in a different session.');
+        console.log('DocumentViewer - Document not found');
+        setError('Document not found. It may have been deleted or you may not have permission to view it.');
       }
     } catch (err) {
       console.error('DocumentViewer - Error retrieving document:', err);
@@ -64,23 +48,28 @@ const DocumentViewer = () => {
     }
   }, [id]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!doc) return;
     
     console.log('Attempting to download document:', doc.id);
-    const blobUrl = documentStore.getBlobUrl(doc.id, 'processed');
-    console.log('Retrieved blob URL:', blobUrl);
     
-    if (blobUrl) {
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `processed_${doc.name}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      // If blob URL is not available, show a message
-      alert('The processed PDF is not available for download. The document may have been processed in a different session.');
+    try {
+      const blob = await downloadProcessedDocument(doc);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `processed_${doc.name}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        alert('The processed PDF is not available for download.');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download the document. Please try again.');
     }
   };
 
@@ -144,14 +133,14 @@ const DocumentViewer = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="font-medium text-gray-700">Upload Date:</span>
-                <span className="ml-2 text-gray-600">{doc.uploadDate}</span>
+                <span className="ml-2 text-gray-600">{new Date(doc.upload_date).toLocaleDateString()}</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">File Size:</span>
-                <span className="ml-2 text-gray-600">{doc.size}</span>
+                <span className="ml-2 text-gray-600">{doc.size_mb} MB</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">Status:</span>
@@ -163,6 +152,12 @@ const DocumentViewer = () => {
                 <span className="font-medium text-gray-700">Document ID:</span>
                 <span className="ml-2 text-gray-600 font-mono text-xs">{doc.id}</span>
               </div>
+              {doc.processed_date && (
+                <div className="md:col-span-2">
+                  <span className="font-medium text-gray-700">Processed Date:</span>
+                  <span className="ml-2 text-gray-600">{new Date(doc.processed_date).toLocaleDateString()}</span>
+                </div>
+              )}
             </div>
             
             <div className="flex justify-center space-x-4">
@@ -188,9 +183,9 @@ const DocumentViewer = () => {
                 <p className="mt-2 font-medium">
                   Scan the QR code to access this document page instantly!
                 </p>
-                {doc.shareableUrl && (
+                {doc.shareable_url && (
                   <p className="mt-2 text-xs text-blue-600 break-all">
-                    Direct link: {doc.shareableUrl}
+                    Direct link: {doc.shareable_url}
                   </p>
                 )}
               </div>
