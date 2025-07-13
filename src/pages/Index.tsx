@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,8 +22,27 @@ const Index = () => {
   const [dragActive, setDragActive] = useState(false);
   const [processingProgress, setProcessingProgress] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, signOut, loading: authLoading } = useAuth();
   const { toast } = useToast();
+
+  // Filter documents based on search query
+  const filteredDocuments = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return documents;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    return documents.filter(doc => 
+      doc.id.toLowerCase().includes(query) ||
+      doc.name.toLowerCase().includes(query)
+    );
+  }, [documents, searchQuery]);
+
+  // Clear search functionality
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
 
   // Load existing documents on component mount
   useEffect(() => {
@@ -434,6 +454,30 @@ const Index = () => {
                 <CardDescription>
                   Track the status of your uploaded documents
                 </CardDescription>
+                
+                {/* Search Bar */}
+                <div className="flex items-center space-x-2 pt-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search by Document ID or name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 pr-10"
+                    />
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearSearch}
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -441,15 +485,28 @@ const Index = () => {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">Loading documents...</p>
                   </div>
-                ) : documents.length === 0 ? (
+                ) : filteredDocuments.length === 0 ? (
                   <div className="text-center py-12">
-                    <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-700 mb-2">No documents uploaded</h3>
-                    <p className="text-gray-500">Upload PDF files to start processing</p>
+                    {searchQuery ? (
+                      <>
+                        <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-700 mb-2">No documents found</h3>
+                        <p className="text-gray-500">No documents match your search query "{searchQuery}"</p>
+                        <Button variant="outline" onClick={clearSearch} className="mt-4">
+                          Clear Search
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-700 mb-2">No documents uploaded</h3>
+                        <p className="text-gray-500">Upload PDF files to start processing</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {documents.map((doc) => (
+                    {filteredDocuments.map((doc) => (
                       <div key={doc.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-3">
@@ -457,7 +514,12 @@ const Index = () => {
                               <FileText className="h-5 w-5 text-red-600" />
                             </div>
                             <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{doc.name}</h4>
+                              <div className="flex items-center space-x-3 mb-1">
+                                <h4 className="font-medium text-gray-900">{doc.name}</h4>
+                                <Badge variant="outline" className="text-xs font-mono bg-blue-50 text-blue-700 border-blue-200">
+                                  {doc.id}
+                                </Badge>
+                              </div>
                               <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
                                 <span>{doc.size}</span>
                                 <span>•</span>
