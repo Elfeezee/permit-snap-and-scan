@@ -31,7 +31,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          id?: string
+          id: string
           name: string
           original_file_path?: string | null
           processed_date?: string | null
@@ -138,7 +138,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_kasupda_permit_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

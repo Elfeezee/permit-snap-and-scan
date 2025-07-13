@@ -16,6 +16,12 @@ export interface DocumentRecord {
 }
 
 export class DocumentService {
+  // Generate a new KASUPDA permit ID
+  async generateKasupdaPermitId(): Promise<{ data: string | null; error: any }> {
+    const { data, error } = await supabase.rpc('generate_kasupda_permit_id');
+    return { data, error };
+  }
+
   // Create a new document record
   async createDocument(data: {
     name: string;
@@ -23,9 +29,16 @@ export class DocumentService {
     user_id?: string;
     original_file_path?: string;
   }): Promise<{ data: DocumentRecord | null; error: any }> {
+    // Generate the custom ID first
+    const { data: customId, error: idError } = await this.generateKasupdaPermitId();
+    if (idError || !customId) {
+      return { data: null, error: idError || new Error('Failed to generate ID') };
+    }
+
     const { data: doc, error } = await supabase
       .from('documents')
       .insert([{
+        id: customId,
         name: data.name,
         size_mb: data.size_mb,
         user_id: data.user_id,

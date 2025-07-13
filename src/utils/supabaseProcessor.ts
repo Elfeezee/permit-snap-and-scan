@@ -12,8 +12,14 @@ export interface ProcessedDocument {
   dbRecord?: DocumentRecord;
 }
 
-export const generateUniqueId = (): string => {
-  return `DOC-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+export const generateUniqueId = async (): Promise<string> => {
+  // This function is now replaced by the database function
+  // We'll call the database function through documentService
+  const { data, error } = await documentService.generateKasupdaPermitId();
+  if (error || !data) {
+    throw new Error('Failed to generate document ID');
+  }
+  return data;
 };
 
 export const generateQRCode = async (url: string): Promise<string> => {
@@ -78,7 +84,7 @@ export const processDocumentWithSupabase = async (
   try {
     onProgress?.(10);
 
-    // Create document record in database
+    // Create document record in database (ID is generated automatically)
     const { data: dbRecord, error: dbError } = await documentService.createDocument({
       name: file.name,
       size_mb: Number((file.size / 1024 / 1024).toFixed(2)),
