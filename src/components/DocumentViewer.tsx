@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, AlertCircle, ExternalLink, QrCode, RefreshCw } from 'lucide-react';
+import { Download, FileText, AlertCircle, ExternalLink, QrCode, RefreshCw, Eye } from 'lucide-react';
 import { documentService, DocumentRecord } from '@/services/documentService';
 import { downloadProcessedDocument, getProcessedDocumentUrl } from '@/utils/supabaseProcessor';
 
@@ -70,6 +70,26 @@ const DocumentViewer = () => {
     } catch (error) {
       console.error('Download error:', error);
       alert('Failed to download the document. Please try again.');
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!doc) return;
+    
+    console.log('Attempting to preview document:', doc.id);
+    
+    try {
+      const blob = await downloadProcessedDocument(doc);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        // Note: URL will be automatically cleaned up when the tab is closed
+      } else {
+        alert('The processed PDF is not available for preview.');
+      }
+    } catch (error) {
+      console.error('Preview error:', error);
+      alert('Failed to preview the document. Please try again.');
     }
   };
 
@@ -156,7 +176,11 @@ const DocumentViewer = () => {
               )}
             </div>
             
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-4">
+              <Button onClick={handlePreview} size="lg" variant="outline">
+                <Eye className="h-5 w-5 mr-2" />
+                Preview
+              </Button>
               <Button onClick={handleDownload} size="lg">
                 <Download className="h-5 w-5 mr-2" />
                 View Permit

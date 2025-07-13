@@ -76,7 +76,7 @@ export const embedQRCodeInPDF = async (
 };
 
 export const createShareableUrl = (documentId: string): string => {
-  return `${window.location.origin}/document/${documentId}`;
+  return `https://kasupda.com/document/${documentId}`;
 };
 
 export const processDocumentWithSupabase = async (
