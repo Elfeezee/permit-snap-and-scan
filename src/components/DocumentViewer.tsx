@@ -135,12 +135,8 @@ const DocumentViewer = () => {
           <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium text-gray-700">Upload Date:</span>
+                <span className="font-medium text-gray-700">Approved Date:</span>
                 <span className="ml-2 text-gray-600">{new Date(doc.upload_date).toLocaleDateString()}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">File Size:</span>
-                <span className="ml-2 text-gray-600">{doc.size_mb} MB</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">Status:</span>
@@ -154,20 +150,16 @@ const DocumentViewer = () => {
               </div>
               {doc.processed_date && (
                 <div className="md:col-span-2">
-                  <span className="font-medium text-gray-700">Processed Date:</span>
-                  <span className="ml-2 text-gray-600">{new Date(doc.processed_date).toLocaleDateString()}</span>
+                  <span className="font-medium text-gray-700">Processed Date & Time:</span>
+                  <span className="ml-2 text-gray-600">{new Date(doc.processed_date).toLocaleString()}</span>
                 </div>
               )}
             </div>
             
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center">
               <Button onClick={handleDownload} size="lg">
                 <Download className="h-5 w-5 mr-2" />
                 Download Processed PDF
-              </Button>
-              <Button onClick={goToMainPage} variant="outline" size="lg">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Return to Main Page
               </Button>
             </div>
             
@@ -176,9 +168,9 @@ const DocumentViewer = () => {
                 <QrCode className="h-5 w-5 mr-2" />
                 About This Document
               </h3>
-              <div className="text-sm text-blue-800 space-y-2">
-                <p>
-                  This PDF has been processed with a QR code embedded at the top-right corner for easy sharing and access.
+              <div className="text-sm space-y-2">
+                <p className="text-green-600 font-medium">
+                  This Permit is original and issued by kasupda as authentic.
                 </p>
                 <p className="mt-2 font-medium">
                   Scan the QR code to access this document page instantly!
