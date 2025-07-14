@@ -76,7 +76,7 @@ export const embedQRCodeInPDF = async (
 };
 
 export const createShareableUrl = (documentId: string): string => {
-  return `https://snggsgvnbapmihpjoeay.lovableproject.com/document/${documentId}`;
+  return `https://permitqrcode.lovable.app/document/${documentId}`;
 };
 
 export const processDocumentWithSupabase = async (
