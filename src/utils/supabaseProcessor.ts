@@ -25,7 +25,7 @@ export const generateUniqueId = async (): Promise<string> => {
 export const generateQRCode = async (url: string): Promise<string> => {
   try {
     const qrDataUrl = await QRCode.toDataURL(url, {
-      width: 84.5,
+      width: 82.5,
       margin: 4,
       errorCorrectionLevel: 'M',
       type: 'image/png',
@@ -57,7 +57,7 @@ export const embedQRCodeInPDF = async (
     
     // Embed the QR code image at the top-right corner
     const qrImage = await pdfDoc.embedPng(qrCodeDataUrl);
-    const qrSize = 84.5;
+    const qrSize = 82.5;
     
     // Position QR code at top-right corner with better visibility
     firstPage.drawImage(qrImage, {
@@ -76,7 +76,7 @@ export const embedQRCodeInPDF = async (
 };
 
 export const createShareableUrl = (documentId: string): string => {
-  return `${window.location.origin}/document/${documentId}`;
+  return `https://snggsgvnbapmihpjoeay.lovableproject.com/document/${documentId}`;
 };
 
 export const processDocumentWithSupabase = async (
