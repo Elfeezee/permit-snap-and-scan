@@ -313,9 +313,14 @@ const Index = () => {
     }
 
     try {
+      // Immediately remove from UI for instant feedback
+      setDocuments(prev => prev.filter(d => d.id !== doc.id));
+
       const { error } = await documentService.deleteDocument(doc.dbRecord.id);
       
       if (error) {
+        // If deletion failed, restore the document to the UI
+        setDocuments(prev => [...prev, doc]);
         throw error;
       }
 
@@ -324,7 +329,7 @@ const Index = () => {
         description: "The document has been successfully deleted.",
       });
 
-      // Reload documents to refresh the list
+      // Reload documents to ensure consistency (the real-time update should handle this too)
       await loadDocuments();
     } catch (error) {
       console.error('Error deleting document:', error);
