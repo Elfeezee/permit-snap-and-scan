@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X } from 'lucide-react';
+import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,7 +59,7 @@ const Index = () => {
       console.log('Real-time update:', payload);
       // Reload documents when there are changes
       loadDocuments();
-    }, user.id);
+    });
 
     return () => {
       if (channel) {
@@ -73,7 +73,8 @@ const Index = () => {
     
     try {
       setLoading(true);
-      const { data: dbDocs, error } = await documentService.getDocuments(user.id);
+      // Get all documents for admin access (all signed-in users are admins)
+      const { data: dbDocs, error } = await documentService.getDocuments();
       
       if (error) {
         console.error('Error loading documents:', error);
@@ -300,6 +301,37 @@ const Index = () => {
       toast({
         title: "Link Copied",
         description: "Shareable link copied to clipboard.",
+      });
+    }
+  };
+
+  const handleDelete = async (doc: ProcessedDocument) => {
+    if (!doc.dbRecord) return;
+
+    if (!confirm(`Are you sure you want to delete "${doc.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await documentService.deleteDocument(doc.dbRecord.id);
+      
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Document Deleted",
+        description: "The document has been successfully deleted.",
+      });
+
+      // Reload documents to refresh the list
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the document. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -534,19 +566,30 @@ const Index = () => {
                                 <span className="capitalize">{doc.status}</span>
                               </div>
                             </Badge>
-                            {doc.status === 'processed' && (
-                              <div className="flex space-x-2">
-                                <Button size="sm" variant="outline" onClick={() => handlePrint(doc)} title="Print PDF">
-                                  <Printer className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={() => handleDownload(doc)} title="Download PDF">
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={() => copyShareableLink(doc)} title="Copy shareable link">
-                                  <Link className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex space-x-2">
+                              {doc.status === 'processed' && (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => handlePrint(doc)} title="Print PDF">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => handleDownload(doc)} title="Download PDF">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => copyShareableLink(doc)} title="Copy shareable link">
+                                    <Link className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleDelete(doc)} 
+                                title="Delete document"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
