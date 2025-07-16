@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/hooks/useUnifiedAuth';
 import { FileText, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
 
 const Auth = () => {
@@ -13,7 +13,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp } = useUnifiedAuth();
   const { toast } = useToast();
 
   // Redirect if already logged in
