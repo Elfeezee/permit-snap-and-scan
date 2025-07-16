@@ -62,10 +62,14 @@ const Index = () => {
     }, user.id);
 
     return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      } else if (unsubscribe && 'unsubscribe' in unsubscribe) {
-        unsubscribe.unsubscribe();
+      try {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        } else if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+          unsubscribe.unsubscribe();
+        }
+      } catch (error) {
+        console.warn('Error cleaning up subscription:', error);
       }
     };
   }, [user]);
