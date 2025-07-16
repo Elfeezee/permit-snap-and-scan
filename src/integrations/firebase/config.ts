@@ -6,12 +6,12 @@ import { getFunctions } from 'firebase/functions';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "kasupda-backend.firebaseapp.com", 
+  apiKey: "AIzaSyDUf7xm5YVE2acm4N2AEy7AWoV4N8qEjuk",
+  authDomain: "kasupda-backend.firebaseapp.com",
   projectId: "kasupda-backend",
-  storageBucket: "kasupda-backend.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  storageBucket: "kasupda-backend.firebasestorage.app",
+  messagingSenderId: "185975290310",
+  appId: "1:185975290310:web:852092bdd064bbf83e1ac7"
 };
 
 // Initialize Firebase
