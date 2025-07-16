@@ -80,8 +80,8 @@ const Index = () => {
     
     try {
       setLoading(true);
-      // Get documents for current user
-      const { data: dbDocs, error } = await unifiedDocumentService.getDocuments(user.id);
+      // Get all documents for admin access (all signed-in users are admins)
+      const { data: dbDocs, error } = await unifiedDocumentService.getDocuments();
       
       if (error) {
         console.error('Error loading documents:', error);
