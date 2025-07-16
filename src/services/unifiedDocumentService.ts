@@ -180,11 +180,22 @@ export class UnifiedDocumentService {
     }
   }
 
-  async deleteFile(bucket: 'documents-original' | 'documents-processed', path: string): Promise<{ error: any }> {
+  async downloadFile(bucket: 'documents-original' | 'documents-processed', path: string): Promise<{ data: Blob | null; error: any }> {
     if (isUsingFirebase()) {
-      return firebaseDocumentService.deleteFile(bucket, path);
+      // For Firebase, we fetch from download URL
+      try {
+        const downloadURL = await firebaseDocumentService.getFileUrl(bucket, path);
+        if (!downloadURL) {
+          return { data: null, error: 'File not found' };
+        }
+        const response = await fetch(downloadURL);
+        const blob = await response.blob();
+        return { data: blob, error: null };
+      } catch (error) {
+        return { data: null, error };
+      }
     } else {
-      return documentService.deleteFile(bucket, path);
+      return documentService.downloadFile(bucket, path);
     }
   }
 

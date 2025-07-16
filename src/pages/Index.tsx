@@ -7,15 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedAuth } from '@/hooks/useUnifiedAuth';
 import { Navigate } from 'react-router-dom';
 import { 
   ProcessedDocument,
-  processDocumentWithSupabase,
+  processDocument,
   getProcessedDocumentUrl,
   downloadProcessedDocument
-} from '@/utils/supabaseProcessor';
-import { documentService, DocumentRecord } from '@/services/documentService';
+} from '@/utils/documentProcessor';
+import { unifiedDocumentService, UnifiedDocumentRecord } from '@/services/unifiedDocumentService';
 
 const Index = () => {
   const [documents, setDocuments] = useState<ProcessedDocument[]>([]);
@@ -23,7 +23,7 @@ const Index = () => {
   const [processingProgress, setProcessingProgress] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading } = useUnifiedAuth();
   const { toast } = useToast();
 
   // Filter documents based on search query
@@ -55,15 +55,17 @@ const Index = () => {
   useEffect(() => {
     if (!user) return;
 
-    const channel = documentService.subscribeToDocuments((payload) => {
-      console.log('Real-time update:', payload);
+    const unsubscribe = unifiedDocumentService.subscribeToDocuments((docs) => {
+      console.log('Real-time update:', docs);
       // Reload documents when there are changes
       loadDocuments();
-    });
+    }, user.id);
 
     return () => {
-      if (channel) {
-        documentService.unsubscribeFromDocuments(channel);
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      } else if (unsubscribe && 'unsubscribe' in unsubscribe) {
+        unsubscribe.unsubscribe();
       }
     };
   }, [user]);
@@ -74,7 +76,7 @@ const Index = () => {
     try {
       setLoading(true);
       // Get all documents for admin access (all signed-in users are admins)
-      const { data: dbDocs, error } = await documentService.getDocuments();
+      const { data: dbDocs, error } = await unifiedDocumentService.getDocuments();
       
       if (error) {
         console.error('Error loading documents:', error);
@@ -159,7 +161,7 @@ const Index = () => {
 
     for (const file of pdfFiles) {
       // Start processing each file
-      processDocument(file);
+      processFile(file);
     }
 
     toast({
@@ -168,7 +170,7 @@ const Index = () => {
     });
   };
 
-  const processDocument = async (file: File) => {
+  const processFile = async (file: File) => {
     if (!user) return;
 
     const tempId = `temp-${Date.now()}`;
@@ -179,8 +181,8 @@ const Index = () => {
       // Set initial progress
       setProcessingProgress(prev => ({ ...prev, [tempId]: 0 }));
 
-      // Process document using Supabase
-      const processedDoc = await processDocumentWithSupabase(
+      // Process document using unified service
+      const processedDoc = await processDocument(
         file,
         user.id,
         (progress) => {
@@ -235,7 +237,7 @@ const Index = () => {
       return;
     }
 
-    const url = getProcessedDocumentUrl(doc.dbRecord);
+    const url = await getProcessedDocumentUrl(doc.dbRecord);
     if (url) {
       const printWindow = window.open(url);
       if (printWindow) {
@@ -316,7 +318,7 @@ const Index = () => {
       // Immediately remove from UI for instant feedback
       setDocuments(prev => prev.filter(d => d.id !== doc.id));
 
-      const { error } = await documentService.deleteDocument(doc.dbRecord.id);
+      const { error } = await unifiedDocumentService.deleteDocument(doc.dbRecord.id);
       
       if (error) {
         // If deletion failed, restore the document to the UI
