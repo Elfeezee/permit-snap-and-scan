@@ -52,27 +52,28 @@ const Index = () => {
   }, [user]);
 
   // Set up real-time subscription for document updates
-  useEffect(() => {
-    if (!user) return;
+  // Temporarily disable real-time subscriptions to avoid Firestore internal errors
+  // useEffect(() => {
+  //   if (!user) return;
 
-    const unsubscribe = unifiedDocumentService.subscribeToDocuments((docs) => {
-      console.log('Real-time update:', docs);
-      // Reload documents when there are changes
-      loadDocuments();
-    }, user.id);
+  //   const unsubscribe = unifiedDocumentService.subscribeToDocuments((docs) => {
+  //     console.log('Real-time update:', docs);
+  //     // Reload documents when there are changes
+  //     loadDocuments();
+  //   }, user.id);
 
-    return () => {
-      try {
-        if (typeof unsubscribe === 'function') {
-          unsubscribe();
-        } else if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
-          unsubscribe.unsubscribe();
-        }
-      } catch (error) {
-        console.warn('Error cleaning up subscription:', error);
-      }
-    };
-  }, [user]);
+  //   return () => {
+  //     try {
+  //       if (typeof unsubscribe === 'function') {
+  //         unsubscribe();
+  //       } else if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+  //         unsubscribe.unsubscribe();
+  //       }
+  //     } catch (error) {
+  //       console.warn('Error cleaning up subscription:', error);
+  //     }
+  //   };
+  // }, [user]);
 
   const loadDocuments = async () => {
     if (!user) return;
