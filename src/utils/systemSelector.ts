@@ -2,7 +2,7 @@
 export type BackendSystem = 'supabase' | 'firebase';
 
 // For now, default to Supabase. Later you can switch this or use environment variables
-export const CURRENT_SYSTEM: BackendSystem = 'firebase';
+export const CURRENT_SYSTEM: BackendSystem = 'supabase';
 
 // You can also create environment-based switching:
 // export const CURRENT_SYSTEM: BackendSystem = 
