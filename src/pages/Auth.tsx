@@ -147,7 +147,7 @@ const Auth = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                {isLogin ? "" : ''}
+                {isLogin ? "Don't have an account?" : 'Already have an account?'}
           
               </p>
             </div>
