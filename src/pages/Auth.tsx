@@ -139,7 +139,7 @@ const Auth = () => {
                 ) : (
                   <div className="flex items-center space-x-2">
                     {isLogin ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                    <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                    <span>{isLogin ? 'Sign In' : ''}</span>
                   </div>
                 )}
               </Button>
