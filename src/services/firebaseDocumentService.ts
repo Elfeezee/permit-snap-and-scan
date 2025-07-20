@@ -4,7 +4,6 @@ import {
   getDocs, 
   doc, 
   getDoc, 
-  setDoc,
   updateDoc, 
   deleteDoc, 
   query, 
@@ -86,7 +85,7 @@ export class FirebaseDocumentService {
 
       // Create document with custom ID
       const docRef = doc(this.documentsCollection, customId);
-      await setDoc(docRef, docData);
+      await updateDoc(docRef, docData);
       
       return { data: docData as FirebaseDocumentRecord, error: null };
     } catch (error) {
