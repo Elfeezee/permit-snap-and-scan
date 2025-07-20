@@ -138,25 +138,14 @@ const Auth = () => {
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    {isLogin ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                    <span>{isLogin ? 'Sign In' : ''}</span>
+                    <LogIn className="h-4 w-4" />
+                    <span>Sign In</span>
                   </div>
                 )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                {isLogin ? "Don't have an account?" : 'Already have an account?'}
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="ml-2 text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  {isLogin ? 'Sign up' : 'Sign in'}
-                </button>
-              </p>
-            </div>
+            
           </CardContent>
         </Card>
 
