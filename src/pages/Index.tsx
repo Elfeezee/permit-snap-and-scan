@@ -24,6 +24,7 @@ const Index = () => {
   const [processingProgress, setProcessingProgress] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [googleMapsLink, setGoogleMapsLink] = useState('');
   const { user, signOut, loading: authLoading } = useUnifiedAuth();
   const { toast } = useToast();
 
@@ -167,7 +168,7 @@ const Index = () => {
 
     for (const file of pdfFiles) {
       // Start processing each file
-      processFile(file);
+      processFile(file, googleMapsLink);
     }
 
     toast({
@@ -176,7 +177,7 @@ const Index = () => {
     });
   };
 
-  const processFile = async (file: File) => {
+  const processFile = async (file: File, googleMapsLink: string) => {
     if (!user) return;
 
     const tempId = `temp-${Date.now()}`;
@@ -191,6 +192,7 @@ const Index = () => {
       const processedDoc = await processDocument(
         file,
         user.id,
+        googleMapsLink,
         (progress) => {
           setProcessingProgress(prev => ({ ...prev, [tempId]: progress }));
         }
@@ -492,6 +494,21 @@ const Index = () => {
                       <span>Select Files</span>
                     </Button>
                   </label>
+                </div>
+
+                {/* Google Maps Link Input */}
+                <div className="mt-4">
+                  <label htmlFor="google-maps-link" className="block text-sm font-medium text-gray-700">
+                    Google Maps Link
+                  </label>
+                  <Input
+                    type="text"
+                    id="google-maps-link"
+                    className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="Paste Google Maps link here"
+                    value={googleMapsLink}
+                    onChange={(e) => setGoogleMapsLink(e.target.value)}
+                  />
                 </div>
 
                 {/* Processing Progress */}

@@ -62,6 +62,7 @@ export class FirebaseDocumentService {
     sizeMb: number;
     userId?: string;
     originalFilePath?: string;
+    googleMapsLink?: string;
   }): Promise<{ data: FirebaseDocumentRecord | null; error: any }> {
     try {
       // Generate custom ID
@@ -77,6 +78,7 @@ export class FirebaseDocumentService {
         sizeMb: data.sizeMb,
         userId: data.userId,
         originalFilePath: data.originalFilePath,
+        googleMapsLink: data.googleMapsLink,
         status: 'uploaded' as const,
         uploadDate: now,
         createdAt: now,

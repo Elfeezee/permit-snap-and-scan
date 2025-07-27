@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, AlertCircle, ExternalLink, QrCode, RefreshCw, Eye } from 'lucide-react';
 import { documentService, DocumentRecord } from '@/services/documentService';
-import { downloadProcessedDocument, getProcessedDocumentUrl } from '@/utils/supabaseProcessor';
-
+import { downloadProcessedDocument, getProcessedDocumentUrl,generateQRCode } from '@/utils/supabaseProcessor';
+import { unifiedDocumentService } from '@/services/unifiedDocumentService';
 const DocumentViewer = () => {
   const { id } = useParams<{ id: string }>();
   const [doc, setDoc] = useState<DocumentRecord | null>(null);
@@ -15,10 +15,11 @@ const DocumentViewer = () => {
 
   const loadDocument = async (documentId: string) => {
     console.log('DocumentViewer - Loading document with ID:', documentId);
+    console.log('DocumentViewer - loadDocument called with ID:', documentId);
     
     try {
-      const { data: foundDoc, error: loadError } = await documentService.getDocument(documentId);
-      
+      const { data: foundDoc, error: loadError } = await unifiedDocumentService.getDocument(documentId);
+
       if (loadError) {
         console.error('DocumentViewer - Error loading document:', loadError);
         setError('Error loading document from database.');
@@ -29,6 +30,7 @@ const DocumentViewer = () => {
         console.log('DocumentViewer - Successfully loaded document:', foundDoc.name);
         setDoc(foundDoc);
         setError(null);
+        console.log('DocumentViewer - google_maps_link:', foundDoc.google_maps_link);
       } else {
         console.log('DocumentViewer - Document not found');
         setError('Document not found. It may have been deleted or you may not have permission to view it.');
@@ -196,6 +198,17 @@ const DocumentViewer = () => {
               )}
             </div>
             
+            {(doc as DocumentRecord).google_maps_link && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="md:col-span-2">
+                  <span className="font-medium text-gray-700">Location Link:</span>
+                  <a href={(doc as DocumentRecord).google_maps_link} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline">
+                    {(doc as DocumentRecord).google_maps_link}
+                  </a>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-center gap-4">
               <Button onClick={handlePreview} size="lg" variant="outline">
                 <Eye className="h-5 w-5 mr-2" />

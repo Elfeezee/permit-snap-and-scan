@@ -13,6 +13,7 @@ export interface DocumentRecord {
   shareable_url?: string;
   created_at: string;
   updated_at: string;
+  google_maps_link?: string;
 }
 
 export class DocumentService {
@@ -28,6 +29,7 @@ export class DocumentService {
     size_mb: number;
     user_id?: string;
     original_file_path?: string;
+    google_maps_link?: string;
   }): Promise<{ data: DocumentRecord | null; error: any }> {
     // Generate the custom ID first
     const { data: customId, error: idError } = await this.generateKasupdaPermitId();
@@ -43,6 +45,7 @@ export class DocumentService {
         size_mb: data.size_mb,
         user_id: data.user_id,
         original_file_path: data.original_file_path,
+        google_maps_link: data.google_maps_link,
         status: 'uploaded' as const
       }])
       .select()

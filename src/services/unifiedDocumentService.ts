@@ -18,6 +18,7 @@ export interface UnifiedDocumentRecord {
   shareable_url?: string;
   created_at: string;
   updated_at: string;
+  google_maps_link?: string;
 }
 
 // Convert Firebase document to unified format
@@ -53,6 +54,7 @@ function supabaseToUnified(doc: DocumentRecord): UnifiedDocumentRecord {
     shareable_url: doc.shareable_url,
     created_at: doc.created_at,
     updated_at: doc.updated_at,
+    google_maps_link: doc.google_maps_link,
   };
 }
 
@@ -70,6 +72,7 @@ export class UnifiedDocumentService {
     size_mb: number;
     user_id?: string;
     original_file_path?: string;
+    google_maps_link?: string;
   }): Promise<{ data: UnifiedDocumentRecord | null; error: any }> {
     if (isUsingFirebase()) {
       const firebaseData = {
@@ -77,6 +80,7 @@ export class UnifiedDocumentService {
         sizeMb: data.size_mb,
         userId: data.user_id,
         originalFilePath: data.original_file_path,
+        googleMapsLink: data.google_maps_link,
       };
       const result = await firebaseDocumentService.createDocument(firebaseData);
       return {
@@ -87,7 +91,7 @@ export class UnifiedDocumentService {
       const result = await documentService.createDocument(data);
       return {
         data: result.data ? supabaseToUnified(result.data) : null,
-        error: result.error
+        error: result.error,
       };
     }
   }

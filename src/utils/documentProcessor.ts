@@ -80,17 +80,19 @@ export const createShareableUrl = (documentId: string): string => {
 export const processDocument = async (
   file: File,
   userId?: string,
+  googleMapsLink?: string,
   onProgress?: (progress: number) => void
 ): Promise<ProcessedDocument> => {
-  try {
-    onProgress?.(10);
+ try {
+  onProgress?.(10);
 
     // Create document record in database (works with both systems)
     const { data: dbRecord, error: dbError } = await unifiedDocumentService.createDocument({
       name: file.name,
       size_mb: Number((file.size / 1024 / 1024).toFixed(2)),
-      user_id: userId
-    });
+      user_id: userId,
+      google_maps_link: googleMapsLink
+     });
 
     if (dbError || !dbRecord) {
       throw new Error('Failed to create document record');
