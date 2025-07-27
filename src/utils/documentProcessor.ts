@@ -73,7 +73,7 @@ export const embedQRCodeInPDF = async (
 };
 
 export const createShareableUrl = (documentId: string): string => {
-  return `https://permitqrcode.lovable.app/document/${documentId}`;
+  return `https://permitqrcode.web.app/document/${documentId}`;
 };
 
 // Updated processor that works with both Supabase and Firebase
