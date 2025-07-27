@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X, Trash2 } from 'lucide-react';
+import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X, Trash2, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import {
   getProcessedDocumentUrl,
   downloadProcessedDocument
 } from '@/utils/documentProcessor';
+import { generateQRCode } from '@/utils/supabaseProcessor';
 import { unifiedDocumentService, UnifiedDocumentRecord } from '@/services/unifiedDocumentService';
 
 const Index = () => {
@@ -281,6 +282,46 @@ const Index = () => {
       toast({
         title: "Download Failed",
         description: "Failed to download the processed file.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadQRCode = async (doc: ProcessedDocument) => {
+    if (!doc.shareableUrl) {
+      toast({
+        title: "Shareable URL Not Available",
+        description: "The shareable URL is not available for this document.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Generate QR code data URL
+      const qrCodeDataUrl = await generateQRCode(doc.shareableUrl);
+
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = qrCodeDataUrl;
+      link.download = `qrcode_${doc.name}.png`; // Set the filename
+      document.body.appendChild(link);
+
+      // Trigger the download
+      link.click();
+
+      // Remove the link from the DOM
+      document.body.removeChild(link);
+
+      toast({
+        title: "QR Code Downloaded",
+        description: "The QR code has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error downloading QR code:", error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the QR code. Please try again.",
         variant: "destructive",
       });
     }
@@ -592,8 +633,16 @@ const Index = () => {
                                   </Button>
                                 </>
                               )}
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDownloadQRCode(doc)}
+                                title="Download QR Code"
+                              >
+                                <QrCode className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
                                 variant="outline" 
                                 onClick={() => handleDelete(doc)} 
                                 title="Delete document"

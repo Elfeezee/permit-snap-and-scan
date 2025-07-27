@@ -73,6 +73,26 @@ const DocumentViewer = () => {
     }
   };
 
+  const handleDownloadQRCode = async () => {
+    if (!doc?.shareable_url) {
+      alert('Shareable URL is not available.');
+      return;
+    }
+
+    try {
+      const qrCodeDataUrl = await generateQRCode(doc.shareable_url);
+      const link = document.createElement('a');
+      link.href = qrCodeDataUrl;
+      link.download = 'qrcode.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
+      alert('Failed to download the QR code. Please try again.');
+    }
+  };
+
   const handlePreview = async () => {
     if (!doc) return;
     
@@ -185,8 +205,12 @@ const DocumentViewer = () => {
                 <Download className="h-5 w-5 mr-2" />
                 View Permit
               </Button>
+              <Button onClick={handleDownloadQRCode} size="lg" variant="outline">
+                <QrCode className="h-5 w-5 mr-2" />
+                Download QR Code
+              </Button>
             </div>
-            
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="font-medium text-blue-900 mb-2 flex items-center">
                 <QrCode className="h-5 w-5 mr-2" />
