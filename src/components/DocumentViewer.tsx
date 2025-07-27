@@ -218,10 +218,7 @@ const DocumentViewer = () => {
                 <Download className="h-5 w-5 mr-2" />
                 View Permit
               </Button>
-              <Button onClick={handleDownloadQRCode} size="lg" variant="outline">
-                <QrCode className="h-5 w-5 mr-2" />
-                Download QR Code
-              </Button>
+         
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
