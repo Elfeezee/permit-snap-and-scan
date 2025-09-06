@@ -114,8 +114,9 @@ export const processDocument = async (
         throw new Error('Failed to upload original file to Firebase');
       }
     } else {
-      // Supabase storage path structure  
-      originalPath = `${userFolder}/${dbRecord.id}_original_${file.name}`;
+      // Supabase storage path structure
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.]/g, '_');
+      originalPath = `${userFolder}/${dbRecord.id}_original_${sanitizedFileName}`;
       uploadResult = await unifiedDocumentService.uploadFile('documents-original', originalPath, file);
       
       if (uploadResult.error) {
@@ -165,9 +166,10 @@ export const processDocument = async (
         throw new Error('Failed to upload processed file to Firebase');
       }
     } else {
-      // Supabase storage path structure
-      processedPath = `${userFolder}/${dbRecord.id}_processed_${file.name}`;
-      processedUploadResult = await unifiedDocumentService.uploadFile('documents-processed', processedPath, processedFile);
+     // Supabase storage path structure
+     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.]/g, '_');
+     processedPath = `${userFolder}/${dbRecord.id}_processed_${sanitizedFileName}`;
+     processedUploadResult = await unifiedDocumentService.uploadFile('documents-processed', processedPath, processedFile);
       
       if (processedUploadResult.error) {
         throw new Error('Failed to upload processed file to Supabase');
