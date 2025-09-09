@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -17,6 +17,7 @@ export type Database = {
       documents: {
         Row: {
           created_at: string
+          google_maps_link: string | null
           id: string
           name: string
           original_file_path: string | null
@@ -31,6 +32,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          google_maps_link?: string | null
           id: string
           name: string
           original_file_path?: string | null
@@ -45,6 +47,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          google_maps_link?: string | null
           id?: string
           name?: string
           original_file_path?: string | null
@@ -58,6 +61,62 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          paid_at: string | null
+          payment_method: string
+          payment_reference: string | null
+          receipt_number: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          student_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method: string
+          payment_reference?: string | null
+          receipt_number?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string
+          payment_reference?: string | null
+          receipt_number?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_auth: {
         Row: {
@@ -103,6 +162,7 @@ export type Database = {
           id: string
           last_name: string
           level: string
+          outstanding_balance: number | null
           phone: string
           reg_number: string
           updated_at: string
@@ -115,6 +175,7 @@ export type Database = {
           id?: string
           last_name: string
           level: string
+          outstanding_balance?: number | null
           phone: string
           reg_number: string
           updated_at?: string
@@ -127,6 +188,7 @@ export type Database = {
           id?: string
           last_name?: string
           level?: string
+          outstanding_balance?: number | null
           phone?: string
           reg_number?: string
           updated_at?: string
@@ -139,6 +201,10 @@ export type Database = {
     }
     Functions: {
       generate_kasupda_permit_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_receipt_number: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
