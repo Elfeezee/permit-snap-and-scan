@@ -59,7 +59,8 @@ export class DocumentService {
     let query = supabase
       .from('documents')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(10000); // Increase limit to handle more than 1000 documents
 
     if (userId) {
       query = query.eq('user_id', userId);
