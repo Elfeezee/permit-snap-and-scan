@@ -438,6 +438,20 @@ const Index = () => {
                 <User className="h-4 w-4" />
                 <span>{user?.email}</span>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setDocuments([]);
+                  loadDocuments();
+                  toast({
+                    title: "Refreshed",
+                    description: "Document data has been reloaded.",
+                  });
+                }}
+              >
+                Refresh
+              </Button>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
