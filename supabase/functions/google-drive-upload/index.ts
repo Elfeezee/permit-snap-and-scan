@@ -10,7 +10,10 @@ async function getAccessToken(serviceAccount: any) {
   console.log("Service Account Email:", serviceAccount.client_email);
   const now = Math.floor(Date.now() / 1000);
   
-  const privateKey = await importPKCS8(serviceAccount.private_key, 'RS256');
+  const privateKey = await importPKCS8(
+    serviceAccount.private_key.replace(/\\n/g, '\n'), 
+    'RS256'
+  );
   
   const jwt = await new SignJWT({
     iss: serviceAccount.client_email,

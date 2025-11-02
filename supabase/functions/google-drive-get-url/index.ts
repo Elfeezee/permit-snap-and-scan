@@ -9,7 +9,11 @@ const corsHeaders = {
 async function getAccessToken(serviceAccount: any) {
   const now = Math.floor(Date.now() / 1000);
   
-  const privateKey = await importPKCS8(serviceAccount.private_key, 'RS256');
+  // Replace escaped newlines with actual newlines
+  const privateKey = await importPKCS8(
+    serviceAccount.private_key.replace(/\\n/g, '\n'), 
+    'RS256'
+  );
   
   const jwt = await new SignJWT({
     iss: serviceAccount.client_email,
