@@ -1,69 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { SignJWT, importPKCS8 } from "npm:jose@^5.2.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper to create JWT for Google API
-async function createJWT(serviceAccount: any, scopes: string[]) {
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const now = Math.floor(Date.now() / 1000);
-  const claim = {
-    iss: serviceAccount.client_email,
-    scope: scopes.join(' '),
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now,
-  };
-
-  const encodedHeader = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const encodedClaim = btoa(JSON.stringify(claim)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const signatureInput = `${encodedHeader}.${encodedClaim}`;
-
-  // Import private key
-  const privateKey = await crypto.subtle.importKey(
-    'pkcs8',
-    pemToArrayBuffer(serviceAccount.private_key),
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  // Sign
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    privateKey,
-    new TextEncoder().encode(signatureInput)
-  );
-
-  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-
-  return `${signatureInput}.${encodedSignature}`;
-}
-
-function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const b64 = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, '')
-    .replace(/-----END PRIVATE KEY-----/, '')
-    .replace(/\s/g, '');
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
 async function getAccessToken(serviceAccount: any) {
-  const jwt = await createJWT(serviceAccount, ['https://www.googleapis.com/auth/drive.file']);
+  const now = Math.floor(Date.now() / 1000);
   
+  const jwt = await new SignJWT({
+    scope: 'https://www.googleapis.com/auth/drive.file',
+  })
+    .setProtectedHeader({ alg: 'RS256' })
+    .setIssuedAt(now)
+    .setIssuer(serviceAccount.client_email)
+    .setAudience('https://oauth2.googleapis.com/token')
+    .setExpirationTime(now + 3600)
+    .sign(await importPKCS8(serviceAccount.private_key, 'RS256'));
+
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
   });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get access token: ${error}`);
+  }
 
   const data = await response.json();
   return data.access_token;
@@ -94,9 +59,6 @@ serve(async (req) => {
 
     const credentials = JSON.parse(serviceAccountJson);
     const accessToken = await getAccessToken(credentials);
-
-    // Decode base64 file data
-    const buffer = Uint8Array.from(atob(fileData), c => c.charCodeAt(0));
 
     // Create multipart upload
     const boundary = '-------314159265358979323846';
