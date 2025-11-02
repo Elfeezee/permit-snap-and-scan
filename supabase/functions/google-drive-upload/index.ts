@@ -54,9 +54,17 @@ serve(async (req) => {
       parents: [folderId],
     };
 
+    // Create a readable stream from the buffer for googleapis
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(buffer);
+        controller.close();
+      },
+    });
+
     const media = {
       mimeType: mimeType || 'application/pdf',
-      body: new Blob([buffer]),
+      body: stream,
     };
 
     const response = await drive.files.create({
