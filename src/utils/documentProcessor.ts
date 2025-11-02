@@ -2,7 +2,13 @@ import { PDFDocument } from 'pdf-lib';
 import QRCode from 'qrcode';
 import { unifiedDocumentService, UnifiedDocumentRecord } from '@/services/unifiedDocumentService';
 import { firebaseStorageService } from '@/services/firebaseStorageService';
-import { isUsingFirebase } from '@/utils/systemSelector';
+import { isUsingFirebase, isUsingGoogleDrive } from '@/utils/systemSelector';
+import { 
+  googleDriveService, 
+  isGoogleDriveFile, 
+  extractGoogleDriveFileId,
+  createGoogleDrivePath 
+} from '@/services/googleDriveService';
 
 export interface ProcessedDocument {
   id: string;
@@ -65,7 +71,7 @@ export const embedQRCodeInPDF = async (
     });
     
     const pdfBytes = await pdfDoc.save();
-    return new Blob([pdfBytes], { type: 'application/pdf' });
+    return new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
   } catch (error) {
     console.error('Error embedding QR code in PDF:', error);
     throw error;
@@ -105,7 +111,22 @@ export const processDocument = async (
     let originalPath: string;
     let uploadResult: any;
 
-    if (isUsingFirebase()) {
+    if (isUsingGoogleDrive()) {
+      // Google Drive storage
+      const originalFolderId = import.meta.env.VITE_GOOGLE_DRIVE_ORIGINAL_FOLDER_ID || '';
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.]/g, '_');
+      uploadResult = await googleDriveService.uploadFile(
+        originalFolderId,
+        file,
+        `${dbRecord.id}_original_${sanitizedFileName}`
+      );
+      
+      if (uploadResult.error || !uploadResult.data) {
+        throw new Error('Failed to upload original file to Google Drive');
+      }
+      
+      originalPath = createGoogleDrivePath(uploadResult.data.id);
+    } else if (isUsingFirebase()) {
       // Firebase storage path structure
       originalPath = firebaseStorageService.createDocumentPath(userFolder, 'original', file.name);
       uploadResult = await firebaseStorageService.uploadFile(originalPath, file);
@@ -157,7 +178,24 @@ export const processDocument = async (
       type: 'application/pdf'
     });
 
-    if (isUsingFirebase()) {
+    if (isUsingGoogleDrive()) {
+      // Google Drive storage
+      const processedFolderId = import.meta.env.VITE_GOOGLE_DRIVE_PROCESSED_FOLDER_ID || '';
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.]/g, '_');
+      processedUploadResult = await googleDriveService.uploadFile(
+        processedFolderId,
+        processedFile,
+        `${dbRecord.id}_processed_${sanitizedFileName}`
+      );
+      
+      if (processedUploadResult.error || !processedUploadResult.data) {
+        throw new Error('Failed to upload processed file to Google Drive');
+      }
+      
+      // Make processed file publicly accessible
+      await googleDriveService.makeFilePublic(processedUploadResult.data.id);
+      processedPath = createGoogleDrivePath(processedUploadResult.data.id);
+    } else if (isUsingFirebase()) {
       // Firebase processed documents are public, so different path structure
       processedPath = firebaseStorageService.createDocumentPath(userFolder, 'processed', file.name);
       processedUploadResult = await firebaseStorageService.uploadFile(processedPath, processedFile);
@@ -216,7 +254,10 @@ export const getProcessedDocumentUrl = async (documentRecord: UnifiedDocumentRec
     return null;
   }
   
-  if (isUsingFirebase()) {
+  if (isGoogleDriveFile(documentRecord.processed_file_path)) {
+    const fileId = extractGoogleDriveFileId(documentRecord.processed_file_path);
+    return await googleDriveService.getFileUrl(fileId);
+  } else if (isUsingFirebase()) {
     return await firebaseStorageService.getDownloadURL(documentRecord.processed_file_path);
   } else {
     const url = unifiedDocumentService.getFileUrl('documents-processed', documentRecord.processed_file_path);
@@ -230,7 +271,11 @@ export const downloadProcessedDocument = async (documentRecord: UnifiedDocumentR
   }
 
   try {
-    if (isUsingFirebase()) {
+    if (isGoogleDriveFile(documentRecord.processed_file_path)) {
+      // Google Drive download
+      const fileId = extractGoogleDriveFileId(documentRecord.processed_file_path);
+      return await googleDriveService.downloadFile(fileId);
+    } else if (isUsingFirebase()) {
       // For Firebase, we need to fetch the file from the download URL
       const downloadURL = await firebaseStorageService.getDownloadURL(documentRecord.processed_file_path);
       if (!downloadURL) return null;
