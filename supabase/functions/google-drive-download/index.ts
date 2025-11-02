@@ -9,15 +9,17 @@ const corsHeaders = {
 async function getAccessToken(serviceAccount: any) {
   const now = Math.floor(Date.now() / 1000);
   
+  const privateKey = await importPKCS8(serviceAccount.private_key, 'RS256');
+  
   const jwt = await new SignJWT({
+    iss: serviceAccount.client_email,
     scope: 'https://www.googleapis.com/auth/drive.file',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
   })
     .setProtectedHeader({ alg: 'RS256' })
-    .setIssuedAt(now)
-    .setIssuer(serviceAccount.client_email)
-    .setAudience('https://oauth2.googleapis.com/token')
-    .setExpirationTime(now + 3600)
-    .sign(await importPKCS8(serviceAccount.private_key, 'RS256'));
+    .sign(privateKey);
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
