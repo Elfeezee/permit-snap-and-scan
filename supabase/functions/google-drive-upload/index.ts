@@ -24,9 +24,16 @@ serve(async (req) => {
       throw new Error('Google Drive service account not configured');
     }
 
-    // Handle case where secret might be double-encoded as a string
-    if (serviceAccountJson.startsWith('"') || serviceAccountJson.startsWith("'")) {
-      serviceAccountJson = JSON.parse(serviceAccountJson);
+    console.log('Raw secret length:', serviceAccountJson.length);
+    console.log('First 50 chars:', serviceAccountJson.substring(0, 50));
+
+    // Clean up the string - remove any extra quotes or whitespace
+    serviceAccountJson = serviceAccountJson.trim();
+    
+    // If the entire string is wrapped in quotes, remove them
+    if ((serviceAccountJson.startsWith('"') && serviceAccountJson.endsWith('"')) ||
+        (serviceAccountJson.startsWith("'") && serviceAccountJson.endsWith("'"))) {
+      serviceAccountJson = serviceAccountJson.slice(1, -1);
     }
 
     const credentials = JSON.parse(serviceAccountJson);
