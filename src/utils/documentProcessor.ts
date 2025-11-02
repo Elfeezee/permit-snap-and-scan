@@ -113,10 +113,9 @@ export const processDocument = async (
 
     if (isUsingGoogleDrive()) {
       // Google Drive storage
-      const originalFolderId = import.meta.env.VITE_GOOGLE_DRIVE_ORIGINAL_FOLDER_ID || '';
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.]/g, '_');
       uploadResult = await googleDriveService.uploadFile(
-        originalFolderId,
+        'original',
         file,
         `${dbRecord.id}_original_${sanitizedFileName}`
       );
@@ -180,10 +179,9 @@ export const processDocument = async (
 
     if (isUsingGoogleDrive()) {
       // Google Drive storage
-      const processedFolderId = import.meta.env.VITE_GOOGLE_DRIVE_PROCESSED_FOLDER_ID || '';
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.]/g, '_');
       processedUploadResult = await googleDriveService.uploadFile(
-        processedFolderId,
+        'processed',
         processedFile,
         `${dbRecord.id}_processed_${sanitizedFileName}`
       );
@@ -192,8 +190,6 @@ export const processDocument = async (
         throw new Error('Failed to upload processed file to Google Drive');
       }
       
-      // Make processed file publicly accessible
-      await googleDriveService.makeFilePublic(processedUploadResult.data.id);
       processedPath = createGoogleDrivePath(processedUploadResult.data.id);
     } else if (isUsingFirebase()) {
       // Firebase processed documents are public, so different path structure

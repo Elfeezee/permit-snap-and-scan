@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface GoogleDriveFile {
   id: string;
@@ -8,67 +8,49 @@ export interface GoogleDriveFile {
   createdTime?: string;
 }
 
+// Hardcoded folder IDs
+const GOOGLE_DRIVE_FOLDERS = {
+  ORIGINAL: 'original',
+  PROCESSED: 'processed'
+};
+
 class GoogleDriveService {
-  private credentials: any = null;
-  private drive: any = null;
+  private async callEdgeFunction(functionName: string, body: any): Promise<any> {
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body
+    });
 
-  private initializeClient() {
-    if (this.drive) return this.drive;
-
-    try {
-      // Get service account from environment
-      const serviceAccountJson = import.meta.env.VITE_GOOGLE_DRIVE_SERVICE_ACCOUNT;
-      
-      if (!serviceAccountJson) {
-        throw new Error('Google Drive service account credentials not found');
-      }
-
-      this.credentials = JSON.parse(serviceAccountJson);
-
-      const auth = new google.auth.JWT({
-        email: this.credentials.client_email,
-        key: this.credentials.private_key,
-        scopes: ['https://www.googleapis.com/auth/drive.file'],
-      });
-
-      this.drive = google.drive({ version: 'v3', auth });
-      return this.drive;
-    } catch (error) {
-      console.error('Failed to initialize Google Drive client:', error);
-      throw error;
-    }
+    if (error) throw error;
+    if (!data.success) throw new Error(data.error);
+    
+    return data;
   }
 
   async uploadFile(
-    folderId: string,
+    folderType: 'original' | 'processed',
     file: File,
     fileName: string
   ): Promise<{ data: GoogleDriveFile | null; error: any }> {
     try {
-      const drive = this.initializeClient();
-
-      // Convert File to Buffer
+      const folderId = GOOGLE_DRIVE_FOLDERS[folderType.toUpperCase() as 'ORIGINAL' | 'PROCESSED'];
+      
+      // Convert File to base64
       const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const base64Data = btoa(
+        new Uint8Array(arrayBuffer)
+          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
 
-      const fileMetadata = {
-        name: fileName,
-        parents: [folderId],
-      };
-
-      const media = {
+      const result = await this.callEdgeFunction('google-drive-upload', {
+        folderId,
+        fileName,
+        fileData: base64Data,
         mimeType: file.type,
-        body: buffer,
-      };
-
-      const response = await drive.files.create({
-        requestBody: fileMetadata,
-        media: media,
-        fields: 'id, name, webViewLink, size, createdTime',
+        makePublic: folderType === 'processed'
       });
 
       return { 
-        data: response.data as GoogleDriveFile, 
+        data: result.data as GoogleDriveFile, 
         error: null 
       };
     } catch (error) {
@@ -78,35 +60,17 @@ class GoogleDriveService {
   }
 
   async makeFilePublic(fileId: string): Promise<{ error: any }> {
-    try {
-      const drive = this.initializeClient();
-
-      await drive.permissions.create({
-        fileId: fileId,
-        requestBody: {
-          role: 'reader',
-          type: 'anyone',
-        },
-      });
-
-      return { error: null };
-    } catch (error) {
-      console.error('Error making file public:', error);
-      return { error };
-    }
+    // This is now handled in the upload function
+    return { error: null };
   }
 
   async getFileUrl(fileId: string): Promise<string | null> {
     try {
-      const drive = this.initializeClient();
-
-      const response = await drive.files.get({
-        fileId: fileId,
-        fields: 'webViewLink, webContentLink',
+      const result = await this.callEdgeFunction('google-drive-get-url', {
+        fileId
       });
 
-      // Return direct download link if available, otherwise view link
-      return response.data.webContentLink || response.data.webViewLink || null;
+      return result.url || null;
     } catch (error) {
       console.error('Error getting file URL:', error);
       return null;
@@ -115,19 +79,18 @@ class GoogleDriveService {
 
   async downloadFile(fileId: string): Promise<Blob | null> {
     try {
-      const drive = this.initializeClient();
+      const result = await this.callEdgeFunction('google-drive-download', {
+        fileId
+      });
 
-      const response = await drive.files.get(
-        {
-          fileId: fileId,
-          alt: 'media',
-        },
-        {
-          responseType: 'arraybuffer',
-        }
-      );
+      // Convert base64 back to Blob
+      const binaryString = atob(result.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
 
-      return new Blob([response.data]);
+      return new Blob([bytes]);
     } catch (error) {
       console.error('Error downloading file from Google Drive:', error);
       return null;
@@ -135,63 +98,24 @@ class GoogleDriveService {
   }
 
   async deleteFile(fileId: string): Promise<{ error: any }> {
-    try {
-      const drive = this.initializeClient();
-
-      await drive.files.delete({
-        fileId: fileId,
-      });
-
-      return { error: null };
-    } catch (error) {
-      console.error('Error deleting file from Google Drive:', error);
-      return { error };
-    }
+    // Not implemented yet - can add edge function if needed
+    return { error: new Error('Delete not implemented') };
   }
 
   async getFileMetadata(fileId: string): Promise<{
     data: { name: string; size: number; createdTime: string } | null;
     error: any;
   }> {
-    try {
-      const drive = this.initializeClient();
-
-      const response = await drive.files.get({
-        fileId: fileId,
-        fields: 'name, size, createdTime',
-      });
-
-      return { 
-        data: response.data, 
-        error: null 
-      };
-    } catch (error) {
-      console.error('Error getting file metadata:', error);
-      return { data: null, error };
-    }
+    // Not implemented yet - can add edge function if needed
+    return { data: null, error: new Error('Get metadata not implemented') };
   }
 
   async listFilesInFolder(folderId: string): Promise<{
     data: Array<{ id: string; name: string; size: number }> | null;
     error: any;
   }> {
-    try {
-      const drive = this.initializeClient();
-
-      const response = await drive.files.list({
-        q: `'${folderId}' in parents and trashed=false`,
-        fields: 'files(id, name, size)',
-        pageSize: 1000,
-      });
-
-      return { 
-        data: response.data.files || [], 
-        error: null 
-      };
-    } catch (error) {
-      console.error('Error listing files in folder:', error);
-      return { data: null, error };
-    }
+    // Not implemented yet - can add edge function if needed
+    return { data: null, error: new Error('List files not implemented') };
   }
 }
 
