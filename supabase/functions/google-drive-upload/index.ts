@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 async function getAccessToken(serviceAccount: any) {
+  console.log("Service Account Email:", serviceAccount.client_email);
   const now = Math.floor(Date.now() / 1000);
   
   const privateKey = await importPKCS8(serviceAccount.private_key, 'RS256');
@@ -21,6 +22,8 @@ async function getAccessToken(serviceAccount: any) {
     .setProtectedHeader({ alg: 'RS256' })
     .sign(privateKey);
 
+  console.log("Generated JWT");
+
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -29,37 +32,82 @@ async function getAccessToken(serviceAccount: any) {
 
   if (!response.ok) {
     const error = await response.text();
+    console.error("Failed to get access token:", error);
     throw new Error(`Failed to get access token: ${error}`);
   }
 
+  console.log("Successfully got access token");
   const data = await response.json();
   return data.access_token;
 }
 
 serve(async (req) => {
+  console.log("google-drive-upload function invoked.");
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    let credentials;
+    try {
+      const serviceAccountJson = {
+        "type": "service_account",
+        "project_id": "kasupda-portal-477014",
+        "private_key_id": "9b373f44ae8df81400ed3a3bf453e45dbd00bcb7",
+        "private_key": `-----BEGIN PRIVATE KEY-----
+MIIEugIBADANBgkqhkiG9w0BAQEFAASCBKQwggSgAgEAAoIBAQCVcGAQPBdwAdxk
+O2UJj/RdjhiAq85AqROHc5AzXWmwRwNukXoSU81ayBc/svb/4G8ZKYQL5EB8Mt/X
+uiuDHvEls2XNlaaB7JRiv/yvwhp13Osa+cy3CQ5xIaVvhWdlRg7D3OBAab5LuKjW
+//Rm3HbJKSLvqjEUYCB0bXJ/slAVnYJLp9KcudQQVh5LUtFKncEoF6eLziPh0Ep8
+sJRlRhpBDTNUG4QcF6FF8ftJPqm5lEOAketOUCOORjERLgfkpbCDeaSUXP/kSSl7
++A+xZnRVN9kZWArZ9hPwAkW/A8+XT5aRjNvt41u/NW9d6uAyht89lKJemztQfMV+
+hS0pDcfbAgMBAAECgf84FJiKo7lMhkGvEpsPDeSUW/XWCqOTMruhdM8owK6yHRjR
+Lsb8PlIt0aAMfnhXsqsjRjpZ8vMbqNdYC5fa+IrP9pVQEX2h+zjY+sXG5mxQzvKQ
+iHc4gmRpEEmp68HPUfs4hZkQSgxWzAf+XjQi+Cubv+aTU4IXo2kc2ogv0YQXvIOj
+3hNtkOzxX12fn7VKdv/hdpu5dUsCFjfSLtHtIemVfpr2RJc6gAxSGymR8S+tdJjr
+2cqio1N7xsVx8Gf6E7i4Ya/pytc/yZUddBVzXyce/Z3qhx0D1A0GVEAO1vUT+sJz
+8nol4fzGYjd5RJHNi5kAPczG8rjNx6WNgk8mPVUCgYEAzoboQXGjtJIePN2NFcoM
++nuH74l0bW4a1g/ihnwB9smfBbuKEukzkhEDKzSNujz7vR30onL3ANlcHEYnoR0d
+U5xI4PdpAB2aKePiKE6bcgqpazy3vkjfUd7SbstT0jPfg8Q9lEsgDaBt0YOlsuHa
+/CjW3OkYmuaZ+CnDuGSm4q8CgYEAuTyX+RCh1pIro2PnG9kuXE7TURveVFQ+Rgnn
+kGFNtE4vby/XWEZAxsksVfzPqF0A22ma0GmGibwQa8G1hmiZucFrcY34psd73ci3
+KIukqpD6eeku+LSlhh9mr0hWTSri5a6vlczRyl6BNxJFD9Cmod0FfLOo4u4p7cDU
+24GnqJUCgYAo3OqBYGG6rZqMAm4S3Jp6yQxZacH+kOWAaz4vy8N7t+Ld+IBWQ4vv
+n6wX1VsheUV54r5vkf2rTlZ6Ras7po4R5/9He8xruG+zUCKERSFejBt/W1Ejtjlx
+cnwCbfqUway83owsljyuVYrFBJ45aZSxhccViI1UwMHAJ0tRZaDbgwKBgGzF3Cfx
+UFeDtgRYIdoEimjCEOzMBJ5YackO/9+Ug+ChGNGdskKv3lHcyCAmOHqRQnOVa8d+
+b/ZpbOsZ8NJgkgS2Q7WGvMCS23W863Dvr15JjAwSlfaNfbVosw+y1pqx2FMvZQP+
+JiNDo3UHUW6cA32BIDu99Cpt2Ek4tsW/OQiRAoGADz0UA/EOrNAs57IXcPpWEr9n
+7NIJheTjU8cWA3Q3K4es/+QU3dn3r1Y6Q2UjP0EwuohfOInn/3OvopzXXa9EVYzo
+AeDicqc5b9CNKAue9tIpNMy+FDME4Ib4r3mB6pI58Kszo+vhrNlyt8OPvBjd1cpJ
+r3lf81AzlsrWz7cpd2I=
+-----END PRIVATE KEY-----`,
+        "client_email": "kasupdaportal@kasupda-portal-477014.iam.gserviceaccount.com",
+        "client_id": "111486990340865997677",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/kasupdaportal%40kasupda-portal-477014.iam.gserviceaccount.com",
+        "universe_domain": "googleapis.com"
+      };
+      // @ts-ignore
+      credentials = serviceAccountJson;
+      // @ts-ignore
+      if (!credentials.client_email) {
+        throw new Error("Service account JSON is missing client_email.");
+      }
+    } catch (e) {
+      console.error("Error parsing service account JSON:", e.message);
+      throw new Error("Service account JSON is not configured correctly.");
+    }
+
     const { folderId, fileName, fileData, mimeType, makePublic } = await req.json();
 
     if (!folderId || !fileName || !fileData) {
       throw new Error('Missing required parameters');
     }
 
-    let serviceAccountJson = Deno.env.get('GOOGLE_DRIVE_SERVICE_ACCOUNT');
-    if (!serviceAccountJson) {
-      throw new Error('Google Drive service account not configured');
-    }
-
-    serviceAccountJson = serviceAccountJson.trim();
-    if ((serviceAccountJson.startsWith('"') && serviceAccountJson.endsWith('"')) ||
-        (serviceAccountJson.startsWith("'") && serviceAccountJson.endsWith("'"))) {
-      serviceAccountJson = serviceAccountJson.slice(1, -1);
-    }
-
-    const credentials = JSON.parse(serviceAccountJson);
     const accessToken = await getAccessToken(credentials);
 
     // Create multipart upload
@@ -82,6 +130,7 @@ serve(async (req) => {
       fileData +
       closeDelimiter;
 
+    console.log("Uploading to Google Drive...");
     const uploadResponse = await fetch(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,size,createdTime',
       {
@@ -96,14 +145,17 @@ serve(async (req) => {
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
+      console.error("Upload failed:", errorText);
       throw new Error(`Upload failed: ${errorText}`);
     }
 
+    console.log("Successfully uploaded file");
     const responseData = await uploadResponse.json();
     const fileId = responseData.id;
 
     // Make file public if requested
     if (makePublic && fileId) {
+      console.log("Making file public...");
       await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
         method: 'POST',
         headers: {
@@ -115,28 +167,29 @@ serve(async (req) => {
           type: 'anyone',
         }),
       });
+      console.log("Successfully made file public");
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        data: responseData 
+      JSON.stringify({
+        success: true,
+        data: responseData
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+        status: 200
       }
     );
   } catch (error) {
-    console.error('Error uploading to Google Drive:', error);
+    console.error('Error uploading to Google Drive:', error.message);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        success: false,
+        error: error.message
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
+        status: 500
       }
     );
   }

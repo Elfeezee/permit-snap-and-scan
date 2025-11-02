@@ -10,8 +10,8 @@ export interface GoogleDriveFile {
 
 // Hardcoded folder IDs
 const GOOGLE_DRIVE_FOLDERS = {
-  ORIGINAL: 'original',
-  PROCESSED: 'processed'
+  ORIGINAL: '10Aw4FOJce-nKZJghzQZDnhC2LtN5mNdm',
+  PROCESSED: '10ktGk354bXnhGAAOmTj7A0uxnhXbeBqY'
 };
 
 class GoogleDriveService {
