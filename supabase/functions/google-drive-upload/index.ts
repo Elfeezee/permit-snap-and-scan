@@ -19,9 +19,14 @@ serve(async (req) => {
     }
 
     // Get service account from environment
-    const serviceAccountJson = Deno.env.get('GOOGLE_DRIVE_SERVICE_ACCOUNT');
+    let serviceAccountJson = Deno.env.get('GOOGLE_DRIVE_SERVICE_ACCOUNT');
     if (!serviceAccountJson) {
       throw new Error('Google Drive service account not configured');
+    }
+
+    // Handle case where secret might be double-encoded as a string
+    if (serviceAccountJson.startsWith('"') || serviceAccountJson.startsWith("'")) {
+      serviceAccountJson = JSON.parse(serviceAccountJson);
     }
 
     const credentials = JSON.parse(serviceAccountJson);
