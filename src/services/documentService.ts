@@ -4,8 +4,8 @@ export interface DocumentRecord {
   id: string;
   name: string;
   size_mb: number;
-  status: 'uploaded' | 'processing' | 'processed';
-  upload_date: string;
+  status: string;
+  kasupda_permit_id?: string;
   processed_date?: string;
   user_id?: string;
   original_file_path?: string;

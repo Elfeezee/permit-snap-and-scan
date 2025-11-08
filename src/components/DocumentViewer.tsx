@@ -178,7 +178,7 @@ const DocumentViewer = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="font-medium text-gray-700">Approved Date:</span>
-                <span className="ml-2 text-gray-600">{new Date(doc.upload_date).toLocaleDateString()}</span>
+                <span className="ml-2 text-gray-600">{new Date(doc.created_at).toLocaleDateString()}</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">Status:</span>

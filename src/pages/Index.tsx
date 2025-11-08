@@ -102,8 +102,8 @@ const Index = () => {
           id: dbDoc.id,
           name: dbDoc.name,
           size: `${dbDoc.size_mb} MB`,
-          uploadDate: new Date(dbDoc.upload_date).toLocaleDateString(),
-          status: dbDoc.status,
+          uploadDate: new Date(dbDoc.created_at).toLocaleDateString(),
+          status: dbDoc.status as any,
           shareableUrl: dbDoc.shareable_url,
           dbRecord: dbDoc
         }));

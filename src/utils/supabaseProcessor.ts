@@ -177,7 +177,7 @@ export const processDocumentWithSupabase = async (
       id: finalRecord.id,
       name: finalRecord.name,
       size: `${finalRecord.size_mb} MB`,
-      uploadDate: new Date(finalRecord.upload_date).toLocaleDateString(),
+      uploadDate: new Date(finalRecord.created_at).toLocaleDateString(),
       status: finalRecord.status as any,
       shareableUrl: finalRecord.shareable_url,
       dbRecord: finalRecord

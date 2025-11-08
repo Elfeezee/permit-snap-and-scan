@@ -9,8 +9,8 @@ export interface UnifiedDocumentRecord {
   id: string;
   name: string;
   size_mb: number;
-  status: 'uploaded' | 'processing' | 'processed';
-  upload_date: string;
+  status: string;
+  kasupda_permit_id?: string;
   processed_date?: string;
   user_id?: string;
   original_file_path?: string;
@@ -28,7 +28,7 @@ function firebaseToUnified(doc: FirebaseDocumentRecord): UnifiedDocumentRecord {
     name: doc.name,
     size_mb: doc.sizeMb,
     status: doc.status,
-    upload_date: doc.uploadDate instanceof Timestamp ? doc.uploadDate.toDate().toISOString() : doc.uploadDate,
+    kasupda_permit_id: undefined,
     processed_date: doc.processedDate instanceof Timestamp ? doc.processedDate.toDate().toISOString() : doc.processedDate,
     user_id: doc.userId,
     original_file_path: doc.originalFilePath,
@@ -46,7 +46,7 @@ function supabaseToUnified(doc: DocumentRecord): UnifiedDocumentRecord {
     name: doc.name,
     size_mb: doc.size_mb,
     status: doc.status,
-    upload_date: doc.upload_date,
+    kasupda_permit_id: doc.kasupda_permit_id,
     processed_date: doc.processed_date,
     user_id: doc.user_id,
     original_file_path: doc.original_file_path,
@@ -134,7 +134,7 @@ export class UnifiedDocumentService {
       const firebaseUpdates: Partial<FirebaseDocumentRecord> = {
         ...(updates.name && { name: updates.name }),
         ...(updates.size_mb && { sizeMb: updates.size_mb }),
-        ...(updates.status && { status: updates.status }),
+        ...(updates.status && { status: updates.status as any }),
         ...(updates.processed_date && { processedDate: Timestamp.fromDate(new Date(updates.processed_date)) }),
         ...(updates.user_id && { userId: updates.user_id }),
         ...(updates.original_file_path && { originalFilePath: updates.original_file_path }),
