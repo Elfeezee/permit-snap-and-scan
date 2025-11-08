@@ -14,13 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      documents: {
+        Row: {
+          created_at: string | null
+          google_maps_link: string | null
+          id: string
+          kasupda_permit_id: string | null
+          name: string
+          original_file_path: string | null
+          processed_date: string | null
+          processed_file_path: string | null
+          shareable_url: string | null
+          size_mb: number
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          google_maps_link?: string | null
+          id?: string
+          kasupda_permit_id?: string | null
+          name: string
+          original_file_path?: string | null
+          processed_date?: string | null
+          processed_file_path?: string | null
+          shareable_url?: string | null
+          size_mb: number
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          google_maps_link?: string | null
+          id?: string
+          kasupda_permit_id?: string | null
+          name?: string
+          original_file_path?: string | null
+          processed_date?: string | null
+          processed_file_path?: string | null
+          shareable_url?: string | null
+          size_mb?: number
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_kasupda_permit_id: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
