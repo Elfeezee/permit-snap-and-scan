@@ -5,8 +5,8 @@ export type StorageSystem = 'supabase' | 'firebase' | 'googledrive';
 // For now, default to Supabase for database
 export const CURRENT_SYSTEM: BackendSystem = 'supabase';
 
-// Use Google Drive for file storage
-export const CURRENT_STORAGE: StorageSystem = 'googledrive';
+// Use Supabase storage buckets for file storage
+export const CURRENT_STORAGE: StorageSystem = 'supabase';
 
 // You can also create environment-based switching:
 // export const CURRENT_SYSTEM: BackendSystem = 
