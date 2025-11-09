@@ -38,7 +38,8 @@ const Index = () => {
     const query = searchQuery.toLowerCase().trim();
     return documents.filter(doc => 
       doc.id.toLowerCase().includes(query) ||
-      doc.name.toLowerCase().includes(query)
+      doc.name.toLowerCase().includes(query) ||
+      (doc.dbRecord?.kasupda_permit_id && doc.dbRecord.kasupda_permit_id.toLowerCase().includes(query))
     );
   }, [documents, searchQuery]);
 
@@ -99,7 +100,7 @@ const Index = () => {
       if (dbDocs) {
         // Convert database records to ProcessedDocument format
         const processedDocs: ProcessedDocument[] = dbDocs.map(dbDoc => ({
-          id: dbDoc.id,
+          id: dbDoc.kasupda_permit_id || dbDoc.id,
           name: dbDoc.name,
           size: `${dbDoc.size_mb} MB`,
           uploadDate: new Date(dbDoc.created_at).toLocaleDateString(),
@@ -644,7 +645,7 @@ const Index = () => {
                               <div className="flex items-center space-x-3 mb-1">
                                 <h4 className="font-medium text-gray-900">{doc.name}</h4>
                                 <Badge variant="outline" className="text-xs font-mono bg-blue-50 text-blue-700 border-blue-200">
-                                  {doc.id}
+                                  {doc.dbRecord?.kasupda_permit_id || doc.id}
                                 </Badge>
                               </div>
                               <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
