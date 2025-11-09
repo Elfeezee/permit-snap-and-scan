@@ -246,14 +246,34 @@ const Index = () => {
       return;
     }
 
-    const url = await getProcessedDocumentUrl(doc.dbRecord);
-    if (url) {
-      const printWindow = window.open(url);
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
+    try {
+      // Download the blob first to avoid browser blocking
+      const blob = await downloadProcessedDocument(doc.dbRecord);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const printWindow = window.open(url);
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+            // Clean up the object URL after printing
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          };
+        } else {
+          URL.revokeObjectURL(url);
+          toast({
+            title: "Print Blocked",
+            description: "Please allow pop-ups to print documents.",
+            variant: "destructive",
+          });
+        }
       }
+    } catch (error) {
+      console.error('Error preparing document for print:', error);
+      toast({
+        title: "Print Failed",
+        description: "Failed to prepare the document for printing.",
+        variant: "destructive",
+      });
     }
   };
 
