@@ -1,12 +1,8 @@
 // System selector utility to switch between Supabase and Firebase
 export type BackendSystem = 'supabase' | 'firebase';
-export type StorageSystem = 'supabase' | 'firebase' | 'googledrive';
 
-// For now, default to Supabase for database
+// For now, default to Supabase. Later you can switch this or use environment variables
 export const CURRENT_SYSTEM: BackendSystem = 'supabase';
-
-// Use Supabase storage buckets for file storage
-export const CURRENT_STORAGE: StorageSystem = 'supabase';
 
 // You can also create environment-based switching:
 // export const CURRENT_SYSTEM: BackendSystem = 
@@ -23,8 +19,4 @@ export function isUsingFirebase(): boolean {
 
 export function isUsingSupabase(): boolean {
   return CURRENT_SYSTEM === 'supabase';
-}
-
-export function isUsingGoogleDrive(): boolean {
-  return CURRENT_STORAGE === 'googledrive';
 }

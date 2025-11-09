@@ -4,8 +4,8 @@ export interface DocumentRecord {
   id: string;
   name: string;
   size_mb: number;
-  status: string;
-  kasupda_permit_id?: string;
+  status: 'uploaded' | 'processing' | 'processed';
+  upload_date: string;
   processed_date?: string;
   user_id?: string;
   original_file_path?: string;
@@ -31,16 +31,16 @@ export class DocumentService {
     original_file_path?: string;
     google_maps_link?: string;
   }): Promise<{ data: DocumentRecord | null; error: any }> {
-    // Generate the custom permit ID
-    const { data: permitId, error: idError } = await this.generateKasupdaPermitId();
-    if (idError || !permitId) {
-      return { data: null, error: idError || new Error('Failed to generate permit ID') };
+    // Generate the custom ID first
+    const { data: customId, error: idError } = await this.generateKasupdaPermitId();
+    if (idError || !customId) {
+      return { data: null, error: idError || new Error('Failed to generate ID') };
     }
 
     const { data: doc, error } = await supabase
       .from('documents')
       .insert([{
-        kasupda_permit_id: permitId,
+        id: customId,
         name: data.name,
         size_mb: data.size_mb,
         user_id: data.user_id,

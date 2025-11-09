@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X, Trash2, QrCode, Shield } from 'lucide-react';
+import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X, Trash2, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useUnifiedAuth } from '@/hooks/useUnifiedAuth';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { 
   ProcessedDocument,
   processDocument,
@@ -25,9 +25,8 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [googleMapsLink, setGoogleMapsLink] = useState('');
-  const { user, signOut, loading: authLoading, isAdmin } = useUnifiedAuth();
+  const { user, signOut, loading: authLoading } = useUnifiedAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   // Filter documents based on search query
   const filteredDocuments = useMemo(() => {
@@ -37,7 +36,7 @@ const Index = () => {
     
     const query = searchQuery.toLowerCase().trim();
     return documents.filter(doc => 
-      (doc.dbRecord?.kasupda_permit_id && doc.dbRecord.kasupda_permit_id.toLowerCase().includes(query)) ||
+      doc.id.toLowerCase().includes(query) ||
       doc.name.toLowerCase().includes(query)
     );
   }, [documents, searchQuery]);
@@ -102,8 +101,8 @@ const Index = () => {
           id: dbDoc.id,
           name: dbDoc.name,
           size: `${dbDoc.size_mb} MB`,
-          uploadDate: new Date(dbDoc.created_at).toLocaleDateString(),
-          status: dbDoc.status as any,
+          uploadDate: new Date(dbDoc.upload_date).toLocaleDateString(),
+          status: dbDoc.status,
           shareableUrl: dbDoc.shareable_url,
           dbRecord: dbDoc
         }));
@@ -246,34 +245,14 @@ const Index = () => {
       return;
     }
 
-    try {
-      // Download the blob first to avoid browser blocking
-      const blob = await downloadProcessedDocument(doc.dbRecord);
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        const printWindow = window.open(url);
-        if (printWindow) {
-          printWindow.onload = () => {
-            printWindow.print();
-            // Clean up the object URL after printing
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-          };
-        } else {
-          URL.revokeObjectURL(url);
-          toast({
-            title: "Print Blocked",
-            description: "Please allow pop-ups to print documents.",
-            variant: "destructive",
-          });
-        }
+    const url = await getProcessedDocumentUrl(doc.dbRecord);
+    if (url) {
+      const printWindow = window.open(url);
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
       }
-    } catch (error) {
-      console.error('Error preparing document for print:', error);
-      toast({
-        title: "Print Failed",
-        description: "Failed to prepare the document for printing.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -473,16 +452,6 @@ const Index = () => {
               >
                 Refresh
               </Button>
-              {isAdmin && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/admin')}
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Admin Panel
-                </Button>
-              )}
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
@@ -664,7 +633,7 @@ const Index = () => {
                               <div className="flex items-center space-x-3 mb-1">
                                 <h4 className="font-medium text-gray-900">{doc.name}</h4>
                                 <Badge variant="outline" className="text-xs font-mono bg-blue-50 text-blue-700 border-blue-200">
-                                  {doc.dbRecord?.kasupda_permit_id || doc.id}
+                                  {doc.id}
                                 </Badge>
                               </div>
                               <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">

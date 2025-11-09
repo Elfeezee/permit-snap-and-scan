@@ -68,7 +68,7 @@ export const embedQRCodeInPDF = async (
     });
     
     const pdfBytes = await pdfDoc.save();
-    return new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
+    return new Blob([pdfBytes], { type: 'application/pdf' });
   } catch (error) {
     console.error('Error embedding QR code in PDF:', error);
     throw error;
@@ -177,7 +177,7 @@ export const processDocumentWithSupabase = async (
       id: finalRecord.id,
       name: finalRecord.name,
       size: `${finalRecord.size_mb} MB`,
-      uploadDate: new Date(finalRecord.created_at).toLocaleDateString(),
+      uploadDate: new Date(finalRecord.upload_date).toLocaleDateString(),
       status: finalRecord.status as any,
       shareableUrl: finalRecord.shareable_url,
       dbRecord: finalRecord
