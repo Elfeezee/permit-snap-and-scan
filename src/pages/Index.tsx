@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X, Trash2, QrCode } from 'lucide-react';
+import { Upload, FileText, Download, CheckCircle, Clock, AlertCircle, Link, Printer, LogOut, User, Search, X, Trash2, QrCode, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useUnifiedAuth } from '@/hooks/useUnifiedAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { 
   ProcessedDocument,
   processDocument,
@@ -25,8 +25,9 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [googleMapsLink, setGoogleMapsLink] = useState('');
-  const { user, signOut, loading: authLoading } = useUnifiedAuth();
+  const { user, signOut, loading: authLoading, isAdmin } = useUnifiedAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Filter documents based on search query
   const filteredDocuments = useMemo(() => {
@@ -452,6 +453,16 @@ const Index = () => {
               >
                 Refresh
               </Button>
+              {isAdmin && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/admin')}
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin Panel
+                </Button>
+              )}
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out

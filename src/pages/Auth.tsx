@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useUnifiedAuth } from '@/hooks/useUnifiedAuth';
-import { FileText, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { FileText, Mail, Lock, UserPlus, LogIn, Shield } from 'lucide-react';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,6 +15,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { user, signIn, signUp } = useUnifiedAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Redirect if already logged in
   if (user) {
@@ -138,13 +139,39 @@ const Auth = () => {
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <LogIn className="h-4 w-4" />
-                    <span>Sign In</span>
+                    {isLogin ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                    <span>{isLogin ? 'Sign In' : 'Sign Up'}</span>
                   </div>
                 )}
               </Button>
             </form>
 
+            <div className="mt-6 text-center">
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-sm"
+              >
+                {isLogin
+                  ? "Don't have an account? Sign up"
+                  : "Already have an account? Sign in"
+                }
+              </Button>
+            </div>
+
+            <div className="mt-4 text-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/create-admin')}
+                className="text-sm"
+              >
+                <Shield className="h-3 w-3 mr-2" />
+                Create Admin Account
+              </Button>
+            </div>
             
           </CardContent>
         </Card>
