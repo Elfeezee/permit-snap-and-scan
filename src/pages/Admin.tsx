@@ -137,7 +137,7 @@ export default function Admin() {
 
   const handleAddStudent = async () => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('students')
         .insert([newStudent]);
 
