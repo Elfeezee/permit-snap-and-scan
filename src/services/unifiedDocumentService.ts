@@ -56,6 +56,7 @@ function supabaseToUnified(doc: DocumentRecord): UnifiedDocumentRecord {
     created_at: doc.created_at,
     updated_at: doc.updated_at,
     google_maps_link: doc.google_maps_link,
+    is_private: (doc as any).is_private ?? false,
   };
 }
 
