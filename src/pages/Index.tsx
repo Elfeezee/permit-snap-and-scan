@@ -78,13 +78,19 @@ const Index = () => {
   //   };
   // }, [user]);
 
+  const PRIVATE_ACCOUNT_EMAIL = 'elfeezee@gmail.com';
+  const isPrivateAccount = user?.email?.toLowerCase() === PRIVATE_ACCOUNT_EMAIL;
+
   const loadDocuments = async () => {
     if (!user) return;
     
     try {
       setLoading(true);
-      // Get all documents for admin access (all signed-in users are admins)
-      const { data: dbDocs, error } = await unifiedDocumentService.getDocuments();
+      // Get all documents, then filter based on private-account isolation
+      const { data: allDocs, error } = await unifiedDocumentService.getDocuments();
+      const dbDocs = allDocs?.filter((d: any) =>
+        isPrivateAccount ? d.is_private === true : d.is_private !== true
+      );
       
       if (error) {
         console.error('Error loading documents:', error);
