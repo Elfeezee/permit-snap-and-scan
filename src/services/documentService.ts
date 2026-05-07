@@ -128,13 +128,18 @@ export class DocumentService {
     return { data, error };
   }
 
-  // Get file URL from storage
-  getFileUrl(bucket: 'documents-original' | 'documents-processed', path: string): string {
-    const { data } = activeSupabase.storage
+  // Get a temporary file URL from storage
+  async getFileUrl(bucket: 'documents-original' | 'documents-processed', path: string): Promise<string | null> {
+    const { data, error } = await activeSupabase.storage
       .from(bucket)
-      .getPublicUrl(path);
+      .createSignedUrl(path, 60 * 5);
 
-    return data.publicUrl;
+    if (error) {
+      console.error('Failed to create file URL:', error);
+      return null;
+    }
+
+    return data.signedUrl;
   }
 
   // Download file from storage
