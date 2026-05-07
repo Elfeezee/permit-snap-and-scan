@@ -2,6 +2,23 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+const ACTIVE_BACKEND_URL = 'https://schnrrroqneonpudbybf.supabase.co';
+const configuredBackendUrl = import.meta.env.VITE_SUPABASE_URL;
+const isStaleBackendConnection =
+  Boolean(configuredBackendUrl) && configuredBackendUrl !== ACTIVE_BACKEND_URL;
+
+const normalizeAuthError = (error: any) => {
+  if (error?.message === 'Failed to fetch' && isStaleBackendConnection) {
+    return {
+      ...error,
+      message:
+        'The app is still using an outdated backend connection. Refresh the preview, then try again.',
+    };
+  }
+
+  return error;
+};
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -39,25 +56,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error: normalizeAuthError(error) };
+    } catch (error) {
+      return { error: normalizeAuthError(error) };
+    }
   };
 
   const signUp = async (email: string, password: string, userData?: any) => {
     const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: userData
-      }
-    });
-    return { error };
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: userData,
+        },
+      });
+      return { error: normalizeAuthError(error) };
+    } catch (error) {
+      return { error: normalizeAuthError(error) };
+    }
   };
 
   const signOut = async () => {
