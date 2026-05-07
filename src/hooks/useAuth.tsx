@@ -1,25 +1,21 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { createClient, User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 
 const ACTIVE_BACKEND_URL = 'https://schnrrroqneonpudbybf.supabase.co';
 const ACTIVE_BACKEND_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6InNjaG5ycnJvcW5lb25wdWRieWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2MTM1MzIsImV4cCI6MjA3ODE4OTUzMn0.6vGgVOkkBAukAeZA0lgzTfqCWcK0xGFszZQSBfR8kcA';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjaG5ycnJvcW5lb25wdWRieWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2MTM1MzIsImV4cCI6MjA3ODE4OTUzMn0.6vGgVOkkBAukAeZA0lgzTfqCWcK0xGFszZQSBfR8kcA';
 const configuredBackendUrl = import.meta.env.VITE_SUPABASE_URL ?? ACTIVE_BACKEND_URL;
-const isStaleBackendConnection =
-  Boolean(configuredBackendUrl) && configuredBackendUrl !== ACTIVE_BACKEND_URL;
-const authClient = isStaleBackendConnection
-  ? createClient(ACTIVE_BACKEND_URL, ACTIVE_BACKEND_KEY, {
-      auth: {
-        storage: localStorage,
-        persistSession: true,
-        autoRefreshToken: true,
-      },
-    })
-  : supabase;
+const configuredBackendKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? ACTIVE_BACKEND_KEY;
+const authClient = createClient(configuredBackendUrl, configuredBackendKey, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
 
 const normalizeAuthError = (error: any) => {
-  if (error?.message === 'Failed to fetch' && isStaleBackendConnection) {
+  if (error?.message === 'Failed to fetch') {
     return {
       ...error,
       message:
