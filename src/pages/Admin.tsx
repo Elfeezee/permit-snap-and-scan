@@ -113,15 +113,16 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
+      const sb = supabase as any;
       const [studentsResult, documentsResult, paymentsResult] = await Promise.all([
-        supabase.from('students').select('*').order('created_at', { ascending: false }),
-        supabase.from('documents').select('*').eq('is_private', false).order('created_at', { ascending: false }).limit(100),
-        supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(100)
+        sb.from('students').select('*').order('created_at', { ascending: false }),
+        sb.from('documents').select('*').eq('is_private', false).order('created_at', { ascending: false }).limit(100),
+        sb.from('payments').select('*').order('created_at', { ascending: false }).limit(100)
       ]);
 
-      if (studentsResult.data) setStudents(studentsResult.data);
-      if (documentsResult.data) setDocuments(documentsResult.data);
-      if (paymentsResult.data) setPayments(paymentsResult.data);
+      if (studentsResult.data) setStudents(studentsResult.data as Student[]);
+      if (documentsResult.data) setDocuments(documentsResult.data as Document[]);
+      if (paymentsResult.data) setPayments(paymentsResult.data as Payment[]);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -136,7 +137,7 @@ export default function Admin() {
 
   const handleAddStudent = async () => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('students')
         .insert([newStudent]);
 
@@ -171,7 +172,7 @@ export default function Admin() {
 
   const handleDeleteStudent = async (studentId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('students')
         .delete()
         .eq('id', studentId);

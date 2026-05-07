@@ -5,7 +5,7 @@ export interface DocumentRecord {
   name: string;
   size_mb: number;
   status: 'uploaded' | 'processing' | 'processed';
-  upload_date: string;
+  upload_date?: string;
   processed_date?: string;
   user_id?: string;
   original_file_path?: string;
@@ -87,7 +87,7 @@ export class DocumentService {
   async updateDocument(id: string, updates: Partial<DocumentRecord>): Promise<{ data: DocumentRecord | null; error: any }> {
     const { data, error } = await supabase
       .from('documents')
-      .update(updates)
+      .update(updates as any)
       .eq('id', id)
       .select()
       .single();
