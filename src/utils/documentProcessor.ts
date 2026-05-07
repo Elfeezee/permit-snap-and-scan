@@ -120,9 +120,11 @@ export const processDocument = async (
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.]/g, '_');
       originalPath = `${userFolder}/${dbRecord.id}_original_${sanitizedFileName}`;
       uploadResult = await unifiedDocumentService.uploadFile('documents-original', originalPath, file);
-      
+
       if (uploadResult.error) {
-        throw new Error('Failed to upload original file to Supabase');
+        console.error('Original upload error details:', uploadResult.error);
+        const msg = uploadResult.error?.message || JSON.stringify(uploadResult.error);
+        throw new Error(`Failed to upload original file to Supabase: ${msg}`);
       }
     }
 
