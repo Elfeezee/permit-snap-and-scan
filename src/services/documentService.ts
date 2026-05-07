@@ -30,6 +30,7 @@ export class DocumentService {
     user_id?: string;
     original_file_path?: string;
     google_maps_link?: string;
+    is_private?: boolean;
   }): Promise<{ data: DocumentRecord | null; error: any }> {
     // Generate the custom ID first
     const { data: customId, error: idError } = await this.generateKasupdaPermitId();
@@ -40,12 +41,13 @@ export class DocumentService {
     const { data: doc, error } = await supabase
       .from('documents')
       .insert([{
-        id: customId,
+        kasupda_permit_id: customId,
         name: data.name,
         size_mb: data.size_mb,
         user_id: data.user_id,
         original_file_path: data.original_file_path,
         google_maps_link: data.google_maps_link,
+        is_private: data.is_private ?? false,
         status: 'uploaded' as const
       }])
       .select()

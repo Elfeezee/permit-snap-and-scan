@@ -19,6 +19,7 @@ export type Database = {
           created_at: string | null
           google_maps_link: string | null
           id: string
+          is_private: boolean
           kasupda_permit_id: string | null
           name: string
           original_file_path: string | null
@@ -34,6 +35,7 @@ export type Database = {
           created_at?: string | null
           google_maps_link?: string | null
           id?: string
+          is_private?: boolean
           kasupda_permit_id?: string | null
           name: string
           original_file_path?: string | null
@@ -49,6 +51,7 @@ export type Database = {
           created_at?: string | null
           google_maps_link?: string | null
           id?: string
+          is_private?: boolean
           kasupda_permit_id?: string | null
           name?: string
           original_file_path?: string | null
