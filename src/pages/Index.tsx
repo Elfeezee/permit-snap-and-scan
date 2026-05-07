@@ -202,7 +202,8 @@ const Index = () => {
         googleMapsLink,
         (progress) => {
           setProcessingProgress(prev => ({ ...prev, [tempId]: progress }));
-        }
+        },
+        isPrivateAccount
       );
 
       console.log('Document processed successfully:', processedDoc);
