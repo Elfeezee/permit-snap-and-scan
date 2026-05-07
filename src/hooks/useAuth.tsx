@@ -1,6 +1,18 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { activeSupabase } from '@/integrations/supabase/activeClient';
+
+const normalizeAuthError = (error: any) => {
+  if (error?.message === 'Failed to fetch') {
+    return {
+      ...error,
+      message:
+        'The registration request could not reach the authentication service. Please disable browser ad/privacy extensions for this site and try again.',
+    };
+  }
+
+  return error;
+};
 
 interface AuthContextType {
   user: User | null;
@@ -20,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = activeSupabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
@@ -29,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    activeSupabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -39,29 +51,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { error } = await activeSupabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error: normalizeAuthError(error) };
+    } catch (error) {
+      return { error: normalizeAuthError(error) };
+    }
   };
 
   const signUp = async (email: string, password: string, userData?: any) => {
     const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: userData
-      }
-    });
-    return { error };
+
+    try {
+      const { error } = await activeSupabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: userData,
+        },
+      });
+      return { error: normalizeAuthError(error) };
+    } catch (error) {
+      return { error: normalizeAuthError(error) };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await activeSupabase.auth.signOut();
   };
 
   return (

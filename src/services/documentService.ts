@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { activeSupabase } from '@/integrations/supabase/activeClient';
 
 export interface DocumentRecord {
   id: string;
@@ -19,7 +19,7 @@ export interface DocumentRecord {
 export class DocumentService {
   // Generate a new KASUPDA permit ID
   async generateKasupdaPermitId(): Promise<{ data: string | null; error: any }> {
-    const { data, error } = await supabase.rpc('generate_kasupda_permit_id');
+    const { data, error } = await activeSupabase.rpc('generate_kasupda_permit_id');
     return { data, error };
   }
 
@@ -38,7 +38,7 @@ export class DocumentService {
       return { data: null, error: idError || new Error('Failed to generate ID') };
     }
 
-    const { data: doc, error } = await supabase
+    const { data: doc, error } = await activeSupabase
       .from('documents')
       .insert([{
         kasupda_permit_id: customId,
@@ -58,7 +58,7 @@ export class DocumentService {
 
   // Get all documents for current user
   async getDocuments(userId?: string): Promise<{ data: DocumentRecord[] | null; error: any }> {
-    let query = supabase
+    let query = activeSupabase
       .from('documents')
       .select('*')
       .order('created_at', { ascending: false })
@@ -74,7 +74,7 @@ export class DocumentService {
 
   // Get a single document by ID
   async getDocument(id: string): Promise<{ data: DocumentRecord | null; error: any }> {
-    const { data, error } = await supabase
+    const { data, error } = await activeSupabase
       .from('documents')
       .select('*')
       .eq('id', id)
@@ -85,7 +85,7 @@ export class DocumentService {
 
   // Update document status and metadata
   async updateDocument(id: string, updates: Partial<DocumentRecord>): Promise<{ data: DocumentRecord | null; error: any }> {
-    const { data, error } = await supabase
+    const { data, error } = await activeSupabase
       .from('documents')
       .update(updates as any)
       .eq('id', id)
@@ -97,7 +97,7 @@ export class DocumentService {
 
   // Delete a document
   async deleteDocument(id: string): Promise<{ error: any }> {
-    const { error } = await supabase
+    const { error } = await activeSupabase
       .from('documents')
       .delete()
       .eq('id', id);
@@ -111,7 +111,7 @@ export class DocumentService {
     path: string,
     file: File
   ): Promise<{ data: any; error: any }> {
-    const { data, error } = await supabase.storage
+    const { data, error } = await activeSupabase.storage
       .from(bucket)
       .upload(path, file, {
         cacheControl: '3600',
@@ -123,7 +123,7 @@ export class DocumentService {
 
   // Get file URL from storage
   getFileUrl(bucket: 'documents-original' | 'documents-processed', path: string): string {
-    const { data } = supabase.storage
+    const { data } = activeSupabase.storage
       .from(bucket)
       .getPublicUrl(path);
 
@@ -132,7 +132,7 @@ export class DocumentService {
 
   // Download file from storage
   async downloadFile(bucket: 'documents-original' | 'documents-processed', path: string): Promise<{ data: Blob | null; error: any }> {
-    const { data, error } = await supabase.storage
+    const { data, error } = await activeSupabase.storage
       .from(bucket)
       .download(path);
 
@@ -141,7 +141,7 @@ export class DocumentService {
 
   // Delete file from storage
   async deleteFile(bucket: 'documents-original' | 'documents-processed', path: string): Promise<{ error: any }> {
-    const { error } = await supabase.storage
+    const { error } = await activeSupabase.storage
       .from(bucket)
       .remove([path]);
 
@@ -150,7 +150,7 @@ export class DocumentService {
 
   // Subscribe to real-time document updates
   subscribeToDocuments(callback: (payload: any) => void, userId?: string) {
-    let channel = supabase
+    let channel = activeSupabase
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
@@ -167,7 +167,7 @@ export class DocumentService {
 
   // Unsubscribe from real-time updates
   unsubscribeFromDocuments(channel: any) {
-    return supabase.removeChannel(channel);
+    return activeSupabase.removeChannel(channel);
   }
 }
 
