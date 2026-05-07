@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { activeSupabase } from '@/integrations/supabase/activeClient';
 import {
   Table,
   TableBody,
@@ -113,7 +113,7 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const sb = supabase as any;
+      const sb = activeSupabase as any;
       const [studentsResult, documentsResult, paymentsResult] = await Promise.all([
         sb.from('students').select('*').order('created_at', { ascending: false }),
         sb.from('documents').select('*').eq('is_private', false).order('created_at', { ascending: false }).limit(100),
@@ -137,7 +137,7 @@ export default function Admin() {
 
   const handleAddStudent = async () => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await (activeSupabase as any)
         .from('students')
         .insert([newStudent]);
 
@@ -172,7 +172,7 @@ export default function Admin() {
 
   const handleDeleteStudent = async (studentId: string) => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await (activeSupabase as any)
         .from('students')
         .delete()
         .eq('id', studentId);
