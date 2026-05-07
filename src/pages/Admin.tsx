@@ -115,7 +115,7 @@ export default function Admin() {
     try {
       const [studentsResult, documentsResult, paymentsResult] = await Promise.all([
         supabase.from('students').select('*').order('created_at', { ascending: false }),
-        supabase.from('documents').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('documents').select('*').eq('is_private', false).order('created_at', { ascending: false }).limit(100),
         supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(100)
       ]);
 
