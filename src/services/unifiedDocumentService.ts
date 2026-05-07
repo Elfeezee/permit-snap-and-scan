@@ -19,6 +19,7 @@ export interface UnifiedDocumentRecord {
   created_at: string;
   updated_at: string;
   google_maps_link?: string;
+  is_private?: boolean;
 }
 
 // Convert Firebase document to unified format
