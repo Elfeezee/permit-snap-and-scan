@@ -5,7 +5,7 @@ export interface DocumentRecord {
   name: string;
   size_mb: number;
   status: 'uploaded' | 'processing' | 'processed';
-  upload_date: string;
+  upload_date?: string;
   processed_date?: string;
   user_id?: string;
   original_file_path?: string;
