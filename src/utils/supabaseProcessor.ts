@@ -191,12 +191,12 @@ export const processDocumentWithSupabase = async (
   }
 };
 
-export const getProcessedDocumentUrl = (documentRecord: DocumentRecord): string | null => {
+export const getProcessedDocumentUrl = async (documentRecord: DocumentRecord): Promise<string | null> => {
   if (!documentRecord.processed_file_path) {
     return null;
   }
   
-  return documentService.getFileUrl('documents-processed', documentRecord.processed_file_path);
+  return await documentService.getFileUrl('documents-processed', documentRecord.processed_file_path);
 };
 
 export const downloadProcessedDocument = async (documentRecord: DocumentRecord): Promise<Blob | null> => {

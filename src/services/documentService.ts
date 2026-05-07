@@ -14,6 +14,7 @@ export interface DocumentRecord {
   created_at: string;
   updated_at: string;
   google_maps_link?: string;
+  is_private?: boolean;
 }
 
 export class DocumentService {
@@ -57,7 +58,7 @@ export class DocumentService {
   }
 
   // Get all documents for current user
-  async getDocuments(userId?: string): Promise<{ data: DocumentRecord[] | null; error: any }> {
+  async getDocuments(userId?: string, privacy?: 'private' | 'public'): Promise<{ data: DocumentRecord[] | null; error: any }> {
     let query = activeSupabase
       .from('documents')
       .select('*')
@@ -66,6 +67,12 @@ export class DocumentService {
 
     if (userId) {
       query = query.eq('user_id', userId);
+    }
+
+    if (privacy === 'private') {
+      query = query.eq('is_private', true);
+    } else if (privacy === 'public') {
+      query = query.eq('is_private', false);
     }
 
     const { data, error } = await query;
@@ -121,13 +128,18 @@ export class DocumentService {
     return { data, error };
   }
 
-  // Get file URL from storage
-  getFileUrl(bucket: 'documents-original' | 'documents-processed', path: string): string {
-    const { data } = activeSupabase.storage
+  // Get a temporary file URL from storage
+  async getFileUrl(bucket: 'documents-original' | 'documents-processed', path: string): Promise<string | null> {
+    const { data, error } = await activeSupabase.storage
       .from(bucket)
-      .getPublicUrl(path);
+      .createSignedUrl(path, 60 * 5);
 
-    return data.publicUrl;
+    if (error) {
+      console.error('Failed to create file URL:', error);
+      return null;
+    }
+
+    return data.signedUrl;
   }
 
   // Download file from storage

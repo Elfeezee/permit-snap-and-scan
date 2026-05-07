@@ -86,10 +86,9 @@ const Index = () => {
     
     try {
       setLoading(true);
-      // Get all documents, then filter based on private-account isolation
-      const { data: allDocs, error } = await unifiedDocumentService.getDocuments();
-      const dbDocs = allDocs?.filter((d: any) =>
-        isPrivateAccount ? d.is_private === true : d.is_private !== true
+      const { data: dbDocs, error } = await unifiedDocumentService.getDocuments(
+        isPrivateAccount ? user.id : undefined,
+        isPrivateAccount ? 'private' : 'public'
       );
       
       if (error) {
