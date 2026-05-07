@@ -74,6 +74,7 @@ export class UnifiedDocumentService {
     user_id?: string;
     original_file_path?: string;
     google_maps_link?: string;
+    is_private?: boolean;
   }): Promise<{ data: UnifiedDocumentRecord | null; error: any }> {
     if (isUsingFirebase()) {
       const firebaseData = {
