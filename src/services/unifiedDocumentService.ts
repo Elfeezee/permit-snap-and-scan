@@ -99,15 +99,20 @@ export class UnifiedDocumentService {
     }
   }
 
-  async getDocuments(userId?: string): Promise<{ data: UnifiedDocumentRecord[] | null; error: any }> {
+  async getDocuments(userId?: string, privacy?: 'private' | 'public'): Promise<{ data: UnifiedDocumentRecord[] | null; error: any }> {
     if (isUsingFirebase()) {
       const result = await firebaseDocumentService.getDocuments(userId);
+      const filteredData = result.data?.filter((doc: any) => {
+        if (privacy === 'private') return doc.isPrivate === true;
+        if (privacy === 'public') return doc.isPrivate !== true;
+        return true;
+      });
       return {
-        data: result.data ? result.data.map(firebaseToUnified) : null,
+        data: filteredData ? filteredData.map(firebaseToUnified) : null,
         error: result.error
       };
     } else {
-      const result = await documentService.getDocuments(userId);
+      const result = await documentService.getDocuments(userId, privacy);
       return {
         data: result.data ? result.data.map(supabaseToUnified) : null,
         error: result.error
