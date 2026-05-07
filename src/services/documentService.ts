@@ -87,7 +87,7 @@ export class DocumentService {
   async updateDocument(id: string, updates: Partial<DocumentRecord>): Promise<{ data: DocumentRecord | null; error: any }> {
     const { data, error } = await supabase
       .from('documents')
-      .update(updates)
+      .update(updates as any)
       .eq('id', id)
       .select()
       .single();
