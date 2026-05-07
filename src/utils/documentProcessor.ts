@@ -81,7 +81,8 @@ export const processDocument = async (
   file: File,
   userId?: string,
   googleMapsLink?: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  isPrivate?: boolean
 ): Promise<ProcessedDocument> => {
  try {
   onProgress?.(10);
@@ -91,7 +92,8 @@ export const processDocument = async (
       name: file.name,
       size_mb: Number((file.size / 1024 / 1024).toFixed(2)),
       user_id: userId,
-      google_maps_link: googleMapsLink
+      google_maps_link: googleMapsLink,
+      is_private: isPrivate
      });
 
     if (dbError || !dbRecord) {
