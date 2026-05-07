@@ -1,18 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { createClient, User, Session } from '@supabase/supabase-js';
-
-const ACTIVE_BACKEND_URL = 'https://schnrrroqneonpudbybf.supabase.co';
-const ACTIVE_BACKEND_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjaG5ycnJvcW5lb25wdWRieWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2MTM1MzIsImV4cCI6MjA3ODE4OTUzMn0.6vGgVOkkBAukAeZA0lgzTfqCWcK0xGFszZQSBfR8kcA';
-const configuredBackendUrl = import.meta.env.VITE_SUPABASE_URL ?? ACTIVE_BACKEND_URL;
-const configuredBackendKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? ACTIVE_BACKEND_KEY;
-const authClient = createClient(configuredBackendUrl, configuredBackendKey, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-});
+import { User, Session } from '@supabase/supabase-js';
+import { activeSupabase } from '@/integrations/supabase/activeClient';
 
 const normalizeAuthError = (error: any) => {
   if (error?.message === 'Failed to fetch') {
@@ -44,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = authClient.auth.onAuthStateChange(
+    const { data: { subscription } } = activeSupabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
@@ -53,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Get initial session
-    authClient.auth.getSession().then(({ data: { session } }) => {
+    activeSupabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -64,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await authClient.auth.signInWithPassword({
+      const { error } = await activeSupabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -78,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const redirectUrl = `${window.location.origin}/`;
 
     try {
-      const { error } = await authClient.auth.signUp({
+      const { error } = await activeSupabase.auth.signUp({
         email,
         password,
         options: {
@@ -93,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await authClient.auth.signOut();
+    await activeSupabase.auth.signOut();
   };
 
   return (
