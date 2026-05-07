@@ -172,7 +172,7 @@ export default function Admin() {
 
   const handleDeleteStudent = async (studentId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('students')
         .delete()
         .eq('id', studentId);
