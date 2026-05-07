@@ -1,18 +1,29 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { createClient, User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 const ACTIVE_BACKEND_URL = 'https://schnrrroqneonpudbybf.supabase.co';
-const configuredBackendUrl = import.meta.env.VITE_SUPABASE_URL;
+const ACTIVE_BACKEND_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6InNjaG5ycnJvcW5lb25wdWRieWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2MTM1MzIsImV4cCI6MjA3ODE4OTUzMn0.6vGgVOkkBAukAeZA0lgzTfqCWcK0xGFszZQSBfR8kcA';
+const configuredBackendUrl = import.meta.env.VITE_SUPABASE_URL ?? ACTIVE_BACKEND_URL;
 const isStaleBackendConnection =
   Boolean(configuredBackendUrl) && configuredBackendUrl !== ACTIVE_BACKEND_URL;
+const authClient = isStaleBackendConnection
+  ? createClient(ACTIVE_BACKEND_URL, ACTIVE_BACKEND_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    })
+  : supabase;
 
 const normalizeAuthError = (error: any) => {
   if (error?.message === 'Failed to fetch' && isStaleBackendConnection) {
     return {
       ...error,
       message:
-        'The app is still using an outdated backend connection. Refresh the preview, then try again.',
+        'The registration request could not reach the authentication service. Please disable browser ad/privacy extensions for this site and try again.',
     };
   }
 
@@ -37,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = authClient.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
@@ -46,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    authClient.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -57,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await authClient.auth.signInWithPassword({
         email,
         password,
       });
@@ -71,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const redirectUrl = `${window.location.origin}/`;
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error } = await authClient.auth.signUp({
         email,
         password,
         options: {
@@ -86,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await authClient.auth.signOut();
   };
 
   return (
