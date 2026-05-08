@@ -20,6 +20,7 @@ export interface UnifiedDocumentRecord {
   updated_at: string;
   google_maps_link?: string;
   is_private?: boolean;
+  public_file_url?: string;
 }
 
 // Convert Firebase document to unified format
@@ -57,6 +58,7 @@ function supabaseToUnified(doc: DocumentRecord): UnifiedDocumentRecord {
     updated_at: doc.updated_at,
     google_maps_link: doc.google_maps_link,
     is_private: (doc as any).is_private ?? false,
+    public_file_url: (doc as any).public_file_url,
   };
 }
 
@@ -134,6 +136,18 @@ export class UnifiedDocumentService {
         error: result.error
       };
     }
+  }
+
+  async getSharedDocument(id: string): Promise<{ data: UnifiedDocumentRecord | null; error: any }> {
+    if (isUsingFirebase()) {
+      return this.getDocument(id);
+    }
+
+    const result = await documentService.getSharedDocument(id);
+    return {
+      data: result.data ? supabaseToUnified(result.data) : null,
+      error: result.error,
+    };
   }
 
   async updateDocument(id: string, updates: Partial<UnifiedDocumentRecord>): Promise<{ data: UnifiedDocumentRecord | null; error: any }> {
