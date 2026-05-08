@@ -48,7 +48,7 @@ function supabaseToUnified(doc: DocumentRecord): UnifiedDocumentRecord {
     name: doc.name,
     size_mb: doc.size_mb,
     status: doc.status,
-    upload_date: doc.upload_date,
+    upload_date: doc.upload_date ?? doc.created_at,
     processed_date: doc.processed_date,
     user_id: doc.user_id,
     original_file_path: doc.original_file_path,
