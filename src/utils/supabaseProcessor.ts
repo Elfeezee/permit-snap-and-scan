@@ -43,22 +43,22 @@ export const generateQRCode = async (url: string): Promise<string> => {
 };
 
 export const embedQRCodeInPDF = async (
-  pdfFile: File, 
+  pdfFile: File,
   qrCodeDataUrl: string
 ): Promise<Blob> => {
   try {
     const arrayBuffer = await pdfFile.arrayBuffer();
     const pdfDoc = await PDFDocument.load(arrayBuffer);
-    
+
     // Get the first page
     const pages = pdfDoc.getPages();
     const firstPage = pages[0];
     const { width, height } = firstPage.getSize();
-    
+
     // Embed the QR code image at the top-right corner
     const qrImage = await pdfDoc.embedPng(qrCodeDataUrl);
     const qrSize = 82.5;
-    
+
     // Position QR code at top-right corner with better visibility
     firstPage.drawImage(qrImage, {
       x: width - qrSize - 15,
@@ -66,7 +66,7 @@ export const embedQRCodeInPDF = async (
       width: qrSize,
       height: qrSize,
     });
-    
+
     const pdfBytes = await pdfDoc.save();
     return new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
   } catch (error) {
@@ -76,7 +76,7 @@ export const embedQRCodeInPDF = async (
 };
 
 export const createShareableUrl = (documentId: string): string => {
-  return `https://permitqrcode.lovable.app/document/${documentId}`;
+  return `https://permitqrcode.vercel.app/document/${documentId}`;
 };
 
 export const processDocumentWithSupabase = async (
@@ -103,7 +103,7 @@ export const processDocumentWithSupabase = async (
     // Upload original file to storage
     const userFolder = userId || 'anonymous';
     const originalPath = `${userFolder}/${dbRecord.id}_original_${file.name}`;
-    
+
     const { error: uploadError } = await documentService.uploadFile(
       'documents-original',
       originalPath,
@@ -141,7 +141,7 @@ export const processDocumentWithSupabase = async (
 
     // Upload processed file
     const processedPath = `${userFolder}/${dbRecord.id}_processed_${file.name}`;
-    
+
     const processedFile = new File([processedBlob], `processed_${file.name}`, {
       type: 'application/pdf'
     });
@@ -195,7 +195,7 @@ export const getProcessedDocumentUrl = async (documentRecord: DocumentRecord): P
   if (!documentRecord.processed_file_path) {
     return null;
   }
-  
+
   return await documentService.getFileUrl('documents-processed', documentRecord.processed_file_path);
 };
 
@@ -205,7 +205,7 @@ export const downloadProcessedDocument = async (documentRecord: DocumentRecord):
   }
 
   const { data, error } = await documentService.downloadFile(
-    'documents-processed', 
+    'documents-processed',
     documentRecord.processed_file_path
   );
 
