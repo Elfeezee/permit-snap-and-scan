@@ -211,12 +211,12 @@ const DocumentViewer = () => {
               )}
             </div>
             
-            {(doc as DocumentRecord).google_maps_link && (
+            {doc.google_maps_link && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="md:col-span-2">
                   <span className="font-medium text-gray-700">Location Link:</span>
-                  <a href={(doc as DocumentRecord).google_maps_link} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline">
-                    {(doc as DocumentRecord).google_maps_link}
+                  <a href={doc.google_maps_link} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline">
+                    {doc.google_maps_link}
                   </a>
                 </div>
               </div>
