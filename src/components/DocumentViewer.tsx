@@ -4,12 +4,11 @@ import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, AlertCircle, ExternalLink, QrCode, RefreshCw, Eye } from 'lucide-react';
-import { documentService, DocumentRecord } from '@/services/documentService';
-import { downloadProcessedDocument, getProcessedDocumentUrl,generateQRCode } from '@/utils/supabaseProcessor';
-import { unifiedDocumentService } from '@/services/unifiedDocumentService';
+import { downloadProcessedDocument, generateQRCode } from '@/utils/documentProcessor';
+import { unifiedDocumentService, UnifiedDocumentRecord } from '@/services/unifiedDocumentService';
 const DocumentViewer = () => {
   const { id } = useParams<{ id: string }>();
-  const [doc, setDoc] = useState<DocumentRecord | null>(null);
+  const [doc, setDoc] = useState<UnifiedDocumentRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +17,7 @@ const DocumentViewer = () => {
     console.log('DocumentViewer - loadDocument called with ID:', documentId);
     
     try {
-      const { data: foundDoc, error: loadError } = await unifiedDocumentService.getDocument(documentId);
+      const { data: foundDoc, error: loadError } = await unifiedDocumentService.getSharedDocument(documentId);
 
       if (loadError) {
         console.error('DocumentViewer - Error loading document:', loadError);
@@ -41,6 +40,20 @@ const DocumentViewer = () => {
     }
   };
 
+  const getDocumentBlob = async () => {
+    if (!doc) return null;
+
+    if (doc.public_file_url) {
+      const response = await fetch(doc.public_file_url);
+      if (!response.ok) {
+        throw new Error('Shared file URL could not be opened.');
+      }
+      return await response.blob();
+    }
+
+    return await downloadProcessedDocument(doc);
+  };
+
   useEffect(() => {
     if (id) {
       loadDocument(id).finally(() => setLoading(false));
@@ -56,7 +69,7 @@ const DocumentViewer = () => {
     console.log('Attempting to download document:', doc.id);
     
     try {
-      const blob = await downloadProcessedDocument(doc);
+      const blob = await getDocumentBlob();
       if (blob) {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -101,7 +114,7 @@ const DocumentViewer = () => {
     console.log('Attempting to preview document:', doc.id);
     
     try {
-      const blob = await downloadProcessedDocument(doc);
+      const blob = await getDocumentBlob();
       if (blob) {
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
@@ -198,12 +211,12 @@ const DocumentViewer = () => {
               )}
             </div>
             
-            {(doc as DocumentRecord).google_maps_link && (
+            {doc.google_maps_link && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="md:col-span-2">
                   <span className="font-medium text-gray-700">Location Link:</span>
-                  <a href={(doc as DocumentRecord).google_maps_link} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline">
-                    {(doc as DocumentRecord).google_maps_link}
+                  <a href={doc.google_maps_link} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline">
+                    {doc.google_maps_link}
                   </a>
                 </div>
               </div>

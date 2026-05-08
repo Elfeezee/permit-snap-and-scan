@@ -15,6 +15,7 @@ export interface DocumentRecord {
   updated_at: string;
   google_maps_link?: string;
   is_private?: boolean;
+  public_file_url?: string;
 }
 
 export class DocumentService {
@@ -85,9 +86,23 @@ export class DocumentService {
       .from('documents')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     return { data: data as DocumentRecord, error };
+  }
+
+  // Get a single shared document by link without exposing private documents in dashboards
+  async getSharedDocument(id: string): Promise<{ data: DocumentRecord | null; error: any }> {
+    const { data, error } = await activeSupabase.functions.invoke('shared-document', {
+      method: 'POST',
+      body: { documentId: id },
+    });
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data: (data?.document ?? null) as DocumentRecord | null, error: null };
   }
 
   // Update document status and metadata
