@@ -145,22 +145,6 @@ const Auth = () => {
                 )}
               </Button>
             </form>
-
-
-
-            <div className="mt-4 text-center">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/create-admin')}
-                className="text-sm"
-              >
-                <Shield className="h-3 w-3 mr-2" />
-                Create Admin Account
-              </Button>
-            </div>
-            
           </CardContent>
         </Card>
 
